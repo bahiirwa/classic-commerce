@@ -1264,20 +1264,7 @@ class WC_Admin_Setup_Wizard {
 		<h1><?php esc_html_e( 'Payment', 'woocommerce' ); ?></h1>
 		<form method="post" class="wc-wizard-payment-gateway-form">
 			<p>
-				<?php
-				printf(
-					wp_kses(
-						/* translators: %s: Link */
-						__( 'WooCommerce can accept both online and offline payments. <a href="%s" target="_blank">Additional payment methods</a> can be installed later.', 'woocommerce' ),
-						array(
-							'a' => array(
-								'href'   => array(),
-								'target' => array(),
-							),
-						)
-					),
-					esc_url( admin_url( 'admin.php?page=wc-addons&section=payment-gateways' ) )
-				);
+				<?php echo esc_html_e( 'WooCommerce can accept both online and offline payments. Additional payment methods can be installed later.', 'woocommerce' );
 				?>
 			</p>
 			<?php if ( $featured_gateways ) : ?>
