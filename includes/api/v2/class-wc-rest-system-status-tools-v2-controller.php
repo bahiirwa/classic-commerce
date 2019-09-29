@@ -199,7 +199,7 @@ class WC_REST_System_Status_Tools_V2_Controller extends WC_REST_Controller {
 					__( 'Note:', 'woocommerce' ),
 					__( 'This tool will update your WooCommerce database to the latest version. Please ensure you make sufficient backups before proceeding.', 'woocommerce' )
 				),
-			)
+			),
 		);
 
 		return apply_filters( 'woocommerce_debug_tools', $tools );

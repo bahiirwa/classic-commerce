@@ -903,20 +903,9 @@ class WC_Admin_Setup_Wizard {
 				</ul>
 			<?php endif; ?>
 
-		<?php if ( //$is_wcs_labels_supported ||
-		$is_shipstation_supported ) : ?>
+		<?php if ( $is_shipstation_supported ) : ?>
 			<ul class="wc-setup-shipping-recommended">
 			<?php
-			// if ( $is_wcs_labels_supported ) :
-			// 	$this->display_recommended_item( array(
-			// 		'type'        => 'woocommerce_services',
-			// 		'title'       => __( 'Print shipping labels at home', 'woocommerce' ),
-			// 		'description' => __( 'We recommend WooCommerce Services & Jetpack. These plugins will save you time at the Post Office by enabling you to print your shipping labels at home.', 'woocommerce' ),
-			// 		'img_url'     => WC()->plugin_url() . '/assets/images/obw-woocommerce-services-icon.png',
-			// 		'img_alt'     => __( 'WooCommerce Services icon', 'woocommerce' ),
-			// 		'plugins'     => $this->get_wcs_requisite_plugins(),
-			// 	) );
-			// else
 			if ( $is_shipstation_supported ) :
 				$this->display_recommended_item( array(
 					'type'        => 'shipstation',
