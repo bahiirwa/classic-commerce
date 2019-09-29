@@ -803,7 +803,6 @@ class WC_Admin_Setup_Wizard {
 			);
 		}
 
-		$is_wcs_labels_supported  = $this->is_wcs_shipping_labels_supported_country( $country_code );
 		$is_shipstation_supported = $this->is_shipstation_supported_country( $country_code );
 
 		?>
@@ -1034,137 +1033,6 @@ class WC_Admin_Setup_Wizard {
 	}
 
 	/**
-	 * Is Stripe country supported
-	 * https://stripe.com/global .
-	 *
-	 * @param string $country_code Country code.
-	 */
-	protected function is_stripe_supported_country( $country_code ) {
-		$stripe_supported_countries = array(
-			'AU',
-			'AT',
-			'BE',
-			'CA',
-			'DK',
-			'FI',
-			'FR',
-			'DE',
-			'HK',
-			'IE',
-			'JP',
-			'LU',
-			'NL',
-			'NZ',
-			'NO',
-			'SG',
-			'ES',
-			'SE',
-			'CH',
-			'GB',
-			'US',
-		);
-
-		return in_array( $country_code, $stripe_supported_countries, true );
-	}
-
-	/**
-	 * Is PayPal currency supported.
-	 *
-	 * @param string $currency Currency code.
-	 * @return boolean
-	 */
-	protected function is_paypal_supported_currency( $currency ) {
-		$supported_currencies = array(
-			'AUD',
-			'BRL',
-			'CAD',
-			'MXN',
-			'NZD',
-			'HKD',
-			'SGD',
-			'USD',
-			'EUR',
-			'JPY',
-			'TRY',
-			'NOK',
-			'CZK',
-			'DKK',
-			'HUF',
-			'ILS',
-			'MYR',
-			'PHP',
-			'PLN',
-			'SEK',
-			'CHF',
-			'TWD',
-			'THB',
-			'GBP',
-			'RMB',
-			'RUB',
-			'INR',
-		);
-		return in_array( $currency, $supported_currencies, true );
-	}
-
-	/**
-	 * Is Klarna Checkout country supported.
-	 *
-	 * @param string $country_code Country code.
-	 */
-	protected function is_klarna_checkout_supported_country( $country_code ) {
-		$supported_countries = array(
-			'SE', // Sweden.
-			'FI', // Finland.
-			'NO', // Norway.
-			'NL', // Netherlands.
-		);
-		return in_array( $country_code, $supported_countries, true );
-	}
-
-	/**
-	 * Is Klarna Payments country supported.
-	 *
-	 * @param string $country_code Country code.
-	 */
-	protected function is_klarna_payments_supported_country( $country_code ) {
-		$supported_countries = array(
-			'DK', // Denmark.
-			'DE', // Germany.
-			'AT', // Austria.
-		);
-		return in_array( $country_code, $supported_countries, true );
-	}
-
-	/**
-	 * Is Square country supported
-	 *
-	 * @param string $country_code Country code.
-	 */
-	protected function is_square_supported_country( $country_code ) {
-		$square_supported_countries = array(
-			'US',
-			'CA',
-			'JP',
-			'GB',
-			'AU',
-		);
-		return in_array( $country_code, $square_supported_countries, true );
-	}
-
-	/**
-	 * Is eWAY Payments country supported
-	 *
-	 * @param string $country_code Country code.
-	 */
-	protected function is_eway_payments_supported_country( $country_code ) {
-		$supported_countries = array(
-			'AU', // Australia.
-			'NZ', // New Zealand.
-		);
-		return in_array( $country_code, $supported_countries, true );
-	}
-
-	/**
 	 * Is ShipStation country supported
 	 *
 	 * @param string $country_code Country code.
@@ -1174,18 +1042,6 @@ class WC_Admin_Setup_Wizard {
 			'AU', // Australia.
 			'CA', // Canada.
 			'GB', // United Kingdom.
-		);
-		return in_array( $country_code, $supported_countries, true );
-	}
-
-	/**
-	 * Is WooCommerce Services shipping label country supported
-	 *
-	 * @param string $country_code Country code.
-	 */
-	protected function is_wcs_shipping_labels_supported_country( $country_code ) {
-		$supported_countries = array(
-			'US', // United States.
 		);
 		return in_array( $country_code, $supported_countries, true );
 	}
@@ -1210,140 +1066,7 @@ class WC_Admin_Setup_Wizard {
 	protected function get_wizard_available_in_cart_payment_gateways() {
 		$user_email = $this->get_current_user_email();
 
-		$stripe_description = '<p>' . sprintf(
-			/* translators: %s: URL */
-			__( 'Accept debit and credit cards in 135+ currencies, methods such as Alipay, and one-touch checkout with Apple Pay. <a href="%s" target="_blank">Learn more</a>.', 'woocommerce' ),
-			'https://woocommerce.com/products/stripe/'
-		) . '</p>';
-		$paypal_checkout_description = '<p>' . sprintf(
-			/* translators: %s: URL */
-			__( 'Safe and secure payments using credit cards or your customer\'s PayPal account. <a href="%s" target="_blank">Learn more</a>.', 'woocommerce' ),
-			'https://woocommerce.com/products/woocommerce-gateway-paypal-checkout/'
-		) . '</p>';
-		$klarna_checkout_description = '<p>' . sprintf(
-			/* translators: %s: URL */
-			__( 'Full checkout experience with pay now, pay later and slice it. No credit card numbers, no passwords, no worries. <a href="%s" target="_blank">Learn more about Klarna</a>.', 'woocommerce' ),
-			'https://woocommerce.com/products/klarna-checkout/'
-		) . '</p>';
-		$klarna_payments_description = '<p>' . sprintf(
-			/* translators: %s: URL */
-			__( 'Choose the payment that you want, pay now, pay later or slice it. No credit card numbers, no passwords, no worries. <a href="%s" target="_blank">Learn more about Klarna</a>.', 'woocommerce' ),
-			'https://woocommerce.com/products/klarna-payments/ '
-		) . '</p>';
-		$square_description = '<p>' . sprintf(
-			/* translators: %s: URL */
-			__( 'Securely accept credit and debit cards with one low rate, no surprise fees (custom rates available). Sell online and in store and track sales and inventory in one place. <a href="%s" target="_blank">Learn more about Square</a>.', 'woocommerce' ),
-			'https://woocommerce.com/products/square/'
-		) . '</p>';
-
-		return array(
-			'stripe'          => array(
-				'name'        => __( 'WooCommerce Stripe Gateway', 'woocommerce' ),
-				'image'       => WC()->plugin_url() . '/assets/images/stripe.png',
-				'description' => $stripe_description,
-				'class'       => 'checked stripe-logo',
-				'repo-slug'   => 'woocommerce-gateway-stripe',
-				'settings'    => array(
-					'create_account' => array(
-						'label'       => __( 'Set up Stripe for me using this email:', 'woocommerce' ),
-						'type'        => 'checkbox',
-						'value'       => 'yes',
-						'default'     => 'yes',
-						'placeholder' => '',
-						'required'    => false,
-						'plugins'     => $this->get_wcs_requisite_plugins(),
-					),
-					'email'          => array(
-						'label'       => __( 'Stripe email address:', 'woocommerce' ),
-						'type'        => 'email',
-						'value'       => $user_email,
-						'placeholder' => __( 'Stripe email address', 'woocommerce' ),
-						'required'    => true,
-					),
-				),
-			),
-			'ppec_paypal'     => array(
-				'name'        => __( 'WooCommerce PayPal Checkout Gateway', 'woocommerce' ),
-				'image'       => WC()->plugin_url() . '/assets/images/paypal.png',
-				'description' => $paypal_checkout_description,
-				'enabled'     => true,
-				'class'       => 'checked paypal-logo',
-				'repo-slug'   => 'woocommerce-gateway-paypal-express-checkout',
-				'settings'    => array(
-					'reroute_requests' => array(
-						'label'       => __( 'Set up PayPal for me using this email:', 'woocommerce' ),
-						'type'        => 'checkbox',
-						'value'       => 'yes',
-						'default'     => 'yes',
-						'placeholder' => '',
-						'required'    => false,
-						'plugins'     => $this->get_wcs_requisite_plugins(),
-					),
-					'email'            => array(
-						'label'       => __( 'Direct payments to email address:', 'woocommerce' ),
-						'type'        => 'email',
-						'value'       => $user_email,
-						'placeholder' => __( 'Email address to receive payments', 'woocommerce' ),
-						'required'    => true,
-					),
-				),
-			),
-			'paypal'          => array(
-				'name'        => __( 'PayPal Standard', 'woocommerce' ),
-				'description' => __( 'Accept payments via PayPal using account balance or credit card.', 'woocommerce' ),
-				'image'       => '',
-				'settings'    => array(
-					'email' => array(
-						'label'       => __( 'PayPal email address:', 'woocommerce' ),
-						'type'        => 'email',
-						'value'       => $user_email,
-						'placeholder' => __( 'PayPal email address', 'woocommerce' ),
-						'required'    => true,
-					),
-				),
-			),
-			'klarna_checkout' => array(
-				'name'        => __( 'Klarna Checkout for WooCommerce', 'woocommerce' ),
-				'description' => $klarna_checkout_description,
-				'image'       => WC()->plugin_url() . '/assets/images/klarna-white.png',
-				'enabled'     => true,
-				'class'       => 'klarna-logo',
-				'repo-slug'   => 'klarna-checkout-for-woocommerce',
-			),
-			'klarna_payments' => array(
-				'name'        => __( 'Klarna Payments for WooCommerce', 'woocommerce' ),
-				'description' => $klarna_payments_description,
-				'image'       => WC()->plugin_url() . '/assets/images/klarna-white.png',
-				'enabled'     => true,
-				'class'       => 'klarna-logo',
-				'repo-slug'   => 'klarna-payments-for-woocommerce',
-			),
-			'square'          => array(
-				'name'        => __( 'WooCommerce Square', 'woocommerce' ),
-				'description' => $square_description,
-				'image'       => WC()->plugin_url() . '/assets/images/square-white.png',
-				'class'       => 'square-logo',
-				'enabled'     => true,
-				'repo-slug'   => 'woocommerce-square',
-			),
-			'eway'            => array(
-				'name'        => __( 'WooCommerce eWAY Gateway', 'woocommerce' ),
-				'description' => __( 'The eWAY extension for WooCommerce allows you to take credit card payments directly on your store without redirecting your customers to a third party site to make payment.', 'woocommerce' ),
-				'image'       => WC()->plugin_url() . '/assets/images/eway-logo.jpg',
-				'enabled'     => false,
-				'class'       => 'eway-logo',
-				'repo-slug'   => 'woocommerce-gateway-eway',
-			),
-			'payfast'         => array(
-				'name'        => __( 'WooCommerce PayFast Gateway', 'woocommerce' ),
-				'description' => __( 'The PayFast extension for WooCommerce enables you to accept payments by Credit Card and EFT via one of South Africa’s most popular payment gateways. No setup fees or monthly subscription costs.', 'woocommerce' ),
-				'image'       => WC()->plugin_url() . '/assets/images/payfast.png',
-				'class'       => 'payfast-logo',
-				'enabled'     => false,
-				'repo-slug'   => 'woocommerce-payfast-gateway',
-				'file'        => 'gateway-payfast.php',
-			),
-		);
+		return array();
 	}
 
 	/**
@@ -1356,68 +1079,21 @@ class WC_Admin_Setup_Wizard {
 		$country  = WC()->countries->get_base_country();
 		$currency = get_woocommerce_currency();
 
-		$can_stripe  = $this->is_stripe_supported_country( $country );
-		$can_eway    = $this->is_eway_payments_supported_country( $country );
-		$can_payfast = ( 'ZA' === $country ); // South Africa.
-		$can_paypal  = $this->is_paypal_supported_currency( $currency );
-
 		if ( ! current_user_can( 'install_plugins' ) ) {
 			return $can_paypal ? array( 'paypal' => $gateways['paypal'] ) : array();
 		}
 
 		$spotlight = '';
 
-		if ( $this->is_klarna_checkout_supported_country( $country ) ) {
-			$spotlight = 'klarna_checkout';
-		} elseif ( $this->is_klarna_payments_supported_country( $country ) ) {
-			$spotlight = 'klarna_payments';
-		} elseif ( $this->is_square_supported_country( $country ) && get_option( 'woocommerce_sell_in_person' ) ) {
-			$spotlight = 'square';
-		}
-
 		if ( $spotlight ) {
 			$offered_gateways = array(
 				$spotlight => $gateways[ $spotlight ],
 			);
 
-			if ( $can_paypal ) {
-				$offered_gateways += array( 'ppec_paypal' => $gateways['ppec_paypal'] );
-			}
-
-			if ( $can_stripe ) {
-				$offered_gateways += array( 'stripe' => $gateways['stripe'] );
-			}
-
-			if ( $can_eway ) {
-				$offered_gateways += array( 'eway' => $gateways['eway'] );
-			}
-
-			if ( $can_payfast ) {
-				$offered_gateways += array( 'payfast' => $gateways['payfast'] );
-			}
-
 			return $offered_gateways;
 		}
 
 		$offered_gateways = array();
-
-		if ( $can_stripe ) {
-			$gateways['stripe']['enabled']  = true;
-			$gateways['stripe']['featured'] = true;
-			$offered_gateways              += array( 'stripe' => $gateways['stripe'] );
-		}
-
-		if ( $can_paypal ) {
-			$offered_gateways += array( 'ppec_paypal' => $gateways['ppec_paypal'] );
-		}
-
-		if ( $can_eway ) {
-			$offered_gateways += array( 'eway' => $gateways['eway'] );
-		}
-
-		if ( $can_payfast ) {
-			$offered_gateways += array( 'payfast' => $gateways['payfast'] );
-		}
 
 		return $offered_gateways;
 	}
@@ -1676,10 +1352,6 @@ class WC_Admin_Setup_Wizard {
 			}
 			// @codingStandardsIgnoreSEnd
 
-			if ( 'ppec_paypal' === $gateway_id && empty( $settings['reroute_requests'] ) ) {
-				unset( $settings['enabled'] );
-			}
-
 			$settings_key = 'woocommerce_' . $gateway_id . '_settings';
 			$previously_saved_settings = array_filter( (array) get_option( $settings_key, array() ) );
 			update_option( $settings_key, array_merge( $previously_saved_settings, $settings ) );
@@ -1740,7 +1412,7 @@ class WC_Admin_Setup_Wizard {
 					$this->should_show_theme()
 					&& $this->should_show_mailchimp()
 					) :
-				esc_html_e( 'Select from the list below to enable automated taxes and MailChimp’s best-in-class email services — and design your store with our official, free WooCommerce theme.', 'woocommerce' );
+				esc_html_e( 'Select from the list below to enable MailChimp’s best-in-class email services — and design your store with our official, free WooCommerce theme.', 'woocommerce' );
 			else :
 				esc_html_e( 'Enhance your store with these recommended features.', 'woocommerce' );
 			endif;
@@ -1793,9 +1465,6 @@ class WC_Admin_Setup_Wizard {
 		$setup_storefront       = isset( $_POST['setup_storefront_theme'] ) && 'yes' === $_POST['setup_storefront_theme'];
 		$setup_automated_tax    = isset( $_POST['setup_automated_taxes'] ) && 'yes' === $_POST['setup_automated_taxes'];
 		$setup_mailchimp        = isset( $_POST['setup_mailchimp'] ) && 'yes' === $_POST['setup_mailchimp'];
-
-		update_option( 'woocommerce_calc_taxes', $setup_automated_tax ? 'yes' : 'no' );
-		update_option( 'woocommerce_setup_automated_taxes', $setup_automated_tax );
 
 		if ( $setup_storefront ) {
 			$this->install_theme( 'storefront' );
@@ -1860,32 +1529,6 @@ class WC_Admin_Setup_Wizard {
 		);
 		?>
 		<h1><?php esc_html_e( "You're ready to start selling!", 'woocommerce' ); ?></h1>
-
-		<!--TODO: Remove the signup call for woocommerce->
-		<!-- <div class="woocommerce-message woocommerce-newsletter">
-			<p><?php esc_html_e( "We're here for you — get tips, product updates, and inspiration straight to your mailbox.", 'woocommerce' ); ?></p>
-			<form action="//woocommerce.us8.list-manage.com/subscribe/post?u=2c1434dc56f9506bf3c3ecd21&amp;id=13860df971&amp;SIGNUPPAGE=plugin" method="post" target="_blank" novalidate>
-				<div class="newsletter-form-container">
-					<input
-						class="newsletter-form-email"
-						type="email"
-						value="<?php //echo esc_attr( $user_email ); ?>"
-						name="EMAIL"
-						placeholder="<?php //esc_attr_e( 'Email address', 'woocommerce' ); ?>"
-						required
-					>
-					<p class="wc-setup-actions step newsletter-form-button-container">
-						<button
-							type="submit"
-							value="<?php //esc_html_e( 'Yes please!', 'woocommerce' ); ?>"
-							name="subscribe"
-							id="mc-embedded-subscribe"
-							class="button-primary button newsletter-form-button"
-						><?php //esc_html_e( 'Yes please!', 'woocommerce' ); ?></button>
-					</p>
-				</div>
-			</form>
-		</div> -->
 
 		<ul class="wc-wizard-next-steps">
 			<li class="wc-wizard-next-step-item">
