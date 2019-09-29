@@ -1264,7 +1264,8 @@ class WC_Admin_Setup_Wizard {
 		<h1><?php esc_html_e( 'Payment', 'woocommerce' ); ?></h1>
 		<form method="post" class="wc-wizard-payment-gateway-form">
 			<p>
-				<?php echo esc_html_e( 'WooCommerce can accept both online and offline payments. Additional payment methods can be installed later.', 'woocommerce' );
+				<?php
+				echo esc_html_e( 'WooCommerce can accept both online and offline payments. Additional payment methods can be installed later.', 'woocommerce' );
 				?>
 			</p>
 			<?php if ( $featured_gateways ) : ?>
@@ -1407,21 +1408,6 @@ class WC_Admin_Setup_Wizard {
 		<form method="post">
 			<ul class="recommended-step">
 				<?php
-				if ( $this->should_show_theme() ) :
-					$theme      = wp_get_theme();
-					$theme_name = $theme['Name'];
-					$this->display_recommended_item( array(
-						'type'        => 'storefront_theme',
-						'title'       => __( 'Storefront Theme', 'woocommerce' ),
-						'description' => sprintf( __(
-								'Design your store with deep WooCommerce integration. If toggled on, we’ll install <a href="https://woocommerce.com/storefront/" target="_blank" rel="noopener noreferrer">Storefront</a>, and your current theme <em>%s</em> will be deactivated.', 'woocommerce' ),
-								$theme_name
-						),
-						'img_url'     => WC()->plugin_url() . '/assets/images/obw-storefront-icon.svg',
-						'img_alt'     => __( 'Storefront icon', 'woocommerce' ),
-					) );
-				endif;
-
 				if ( $this->should_show_mailchimp() ) :
 					$this->display_recommended_item( array(
 						'type'        => 'mailchimp',
@@ -1449,13 +1435,7 @@ class WC_Admin_Setup_Wizard {
 	public function wc_setup_recommended_save() {
 		check_admin_referer( 'wc-setup' );
 
-		$setup_storefront       = isset( $_POST['setup_storefront_theme'] ) && 'yes' === $_POST['setup_storefront_theme'];
-		$setup_automated_tax    = isset( $_POST['setup_automated_taxes'] ) && 'yes' === $_POST['setup_automated_taxes'];
 		$setup_mailchimp        = isset( $_POST['setup_mailchimp'] ) && 'yes' === $_POST['setup_mailchimp'];
-
-		if ( $setup_storefront ) {
-			$this->install_theme( 'storefront' );
-		}
 
 		if ( $setup_mailchimp ) {
 			// Prevent MailChimp from redirecting to its settings page during the OBW flow.
