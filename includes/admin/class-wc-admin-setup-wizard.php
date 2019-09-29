@@ -104,25 +104,6 @@ class WC_Admin_Setup_Wizard {
 	}
 
 	/**
-	 * The "automated tax" extra should only be shown if the current user can
-	 * install plugins and the store is in a supported country.
-	 */
-	protected function should_show_automated_tax() {
-		if ( ! current_user_can( 'install_plugins' ) ) {
-			return false;
-		}
-
-		$country_code = WC()->countries->get_base_country();
-		// https://developers.taxjar.com/api/reference/#countries .
-		$tax_supported_countries = array_merge(
-			array( 'US', 'CA', 'AU' ),
-			WC()->countries->get_european_union_countries()
-		);
-
-		return in_array( $country_code, $tax_supported_countries, true );
-	}
-
-	/**
 	 * Should we show the MailChimp install option?
 	 * True only if the user can install plugins.
 	 *
@@ -140,7 +121,6 @@ class WC_Admin_Setup_Wizard {
 	 */
 	protected function should_show_recommended_step() {
 		return $this->should_show_theme()
-			|| $this->should_show_automated_tax()
 			|| $this->should_show_mailchimp();
 	}
 
@@ -185,13 +165,7 @@ class WC_Admin_Setup_Wizard {
 				'states'                  => WC()->countries->get_states(),
 				'current_step'            => isset( $this->steps[ $this->step ] ) ? $this->step : false,
 				'i18n'                    => array(
-					'extra_plugins' => array(
-						'payment' => array(
-							'stripe_create_account'                              => __( 'Stripe setup is powered by Jetpack and WooCommerce Services.', 'woocommerce' ),
-							'ppec_paypal_reroute_requests'                       => __( 'PayPal setup is powered by Jetpack and WooCommerce Services.', 'woocommerce' ),
-							'stripe_create_account,ppec_paypal_reroute_requests' => __( 'Stripe and PayPal setup are powered by Jetpack and WooCommerce Services.', 'woocommerce' ),
-						),
-					),
+					'extra_plugins' => array(),
 				),
 			)
 		);
@@ -676,32 +650,15 @@ class WC_Admin_Setup_Wizard {
 		);
 	}
 
-	/**
-	 * Helper method to install WooCommerce Services and its Jetpack dependency.
-	 */
-	protected function install_woocommerce_services() {
-		$this->install_plugin(
-			'woocommerce-services',
-			array(
-				'name'      => __( 'WooCommerce Services', 'woocommerce' ),
-				'repo-slug' => 'woocommerce-services',
-			)
-		);
-	}
 
 	/**
+	 * TODO: Check on this for removal.
 	 * Retrieve info for missing WooCommerce Services and/or Jetpack plugin.
 	 *
 	 * @return array
 	 */
 	protected function get_wcs_requisite_plugins() {
 		$plugins = array();
-		if ( ! is_plugin_active( 'woocommerce-services/woocommerce-services.php' ) && ! get_option( 'woocommerce_setup_background_installing_woocommerce-services' ) ) {
-			$plugins[] = array(
-				'name' => __( 'WooCommerce Services', 'woocommerce' ),
-				'slug' => 'woocommerce-services',
-			);
-		}
 		return $plugins;
 	}
 
@@ -946,19 +903,21 @@ class WC_Admin_Setup_Wizard {
 				</ul>
 			<?php endif; ?>
 
-		<?php if ( $is_wcs_labels_supported || $is_shipstation_supported ) : ?>
+		<?php if ( //$is_wcs_labels_supported ||
+		$is_shipstation_supported ) : ?>
 			<ul class="wc-setup-shipping-recommended">
 			<?php
-			if ( $is_wcs_labels_supported ) :
-				$this->display_recommended_item( array(
-					'type'        => 'woocommerce_services',
-					'title'       => __( 'Print shipping labels at home', 'woocommerce' ),
-					'description' => __( 'We recommend WooCommerce Services & Jetpack. These plugins will save you time at the Post Office by enabling you to print your shipping labels at home.', 'woocommerce' ),
-					'img_url'     => WC()->plugin_url() . '/assets/images/obw-woocommerce-services-icon.png',
-					'img_alt'     => __( 'WooCommerce Services icon', 'woocommerce' ),
-					'plugins'     => $this->get_wcs_requisite_plugins(),
-				) );
-			elseif ( $is_shipstation_supported ) :
+			// if ( $is_wcs_labels_supported ) :
+			// 	$this->display_recommended_item( array(
+			// 		'type'        => 'woocommerce_services',
+			// 		'title'       => __( 'Print shipping labels at home', 'woocommerce' ),
+			// 		'description' => __( 'We recommend WooCommerce Services & Jetpack. These plugins will save you time at the Post Office by enabling you to print your shipping labels at home.', 'woocommerce' ),
+			// 		'img_url'     => WC()->plugin_url() . '/assets/images/obw-woocommerce-services-icon.png',
+			// 		'img_alt'     => __( 'WooCommerce Services icon', 'woocommerce' ),
+			// 		'plugins'     => $this->get_wcs_requisite_plugins(),
+			// 	) );
+			// else
+			if ( $is_shipstation_supported ) :
 				$this->display_recommended_item( array(
 					'type'        => 'shipstation',
 					'title'       => __( 'Print shipping labels at home', 'woocommerce' ),
@@ -1035,14 +994,9 @@ class WC_Admin_Setup_Wizard {
 		update_option( 'woocommerce_weight_unit', $weight_unit );
 		update_option( 'woocommerce_dimension_unit', $dimension_unit );
 
-		$setup_wcs_labels  = isset( $_POST['setup_woocommerce_services'] ) && 'yes' === $_POST['setup_woocommerce_services'];
 		$setup_shipstation = isset( $_POST['setup_shipstation'] ) && 'yes' === $_POST['setup_shipstation'];
 
 		update_option( 'woocommerce_setup_shipping_labels', $setup_wcs_labels );
-
-		if ( $setup_wcs_labels ) {
-			$this->install_woocommerce_services();
-		}
 
 		if ( $setup_shipstation ) {
 			$this->install_plugin(
@@ -1739,20 +1693,6 @@ class WC_Admin_Setup_Wizard {
 	public function wc_setup_payment_save() {
 		check_admin_referer( 'wc-setup' );
 
-		if (
-			(
-				// Install WooCommerce Services with Stripe to enable deferred account creation.
-				! empty( $_POST['wc-wizard-service-stripe-enabled'] ) && // WPCS: CSRF ok, input var ok.
-				! empty( $_POST['stripe_create_account'] ) // WPCS: CSRF ok, input var ok.
-			) || (
-				// Install WooCommerce Services with PayPal EC to enable proxied payments.
-				! empty( $_POST['wc-wizard-service-ppec_paypal-enabled'] ) && // WPCS: CSRF ok, input var ok.
-				! empty( $_POST['ppec_paypal_reroute_requests'] ) // WPCS: CSRF ok, input var ok.
-			)
-		) {
-			$this->install_woocommerce_services();
-		}
-
 		$gateways = array_merge( $this->get_wizard_in_cart_payment_gateways(), $this->get_wizard_manual_payment_gateways() );
 
 		foreach ( $gateways as $gateway_id => $gateway ) {
@@ -1835,7 +1775,6 @@ class WC_Admin_Setup_Wizard {
 			// and the default is the most common.
 			if (
 					$this->should_show_theme()
-					&& $this->should_show_automated_tax()
 					&& $this->should_show_mailchimp()
 					) :
 				esc_html_e( 'Select from the list below to enable automated taxes and MailChimp’s best-in-class email services — and design your store with our official, free WooCommerce theme.', 'woocommerce' );
@@ -1858,17 +1797,6 @@ class WC_Admin_Setup_Wizard {
 						),
 						'img_url'     => WC()->plugin_url() . '/assets/images/obw-storefront-icon.svg',
 						'img_alt'     => __( 'Storefront icon', 'woocommerce' ),
-					) );
-				endif;
-
-				if ( $this->should_show_automated_tax() ) :
-					$this->display_recommended_item( array(
-						'type'        => 'automated_taxes',
-						'title'       => __( 'Automated Taxes', 'woocommerce' ),
-						'description' => __( 'Save time and errors with automated tax calculation and collection at checkout. Powered by WooCommerce Services and Jetpack.', 'woocommerce' ),
-						'img_url'     => WC()->plugin_url() . '/assets/images/obw-taxes-icon.svg',
-						'img_alt'     => __( 'automated taxes icon', 'woocommerce' ),
-						'plugins'     => $this->get_wcs_requisite_plugins(),
 					) );
 				endif;
 
@@ -1910,10 +1838,6 @@ class WC_Admin_Setup_Wizard {
 			$this->install_theme( 'storefront' );
 		}
 
-		if ( $setup_automated_tax ) {
-			$this->install_woocommerce_services();
-		}
-
 		if ( $setup_mailchimp ) {
 			// Prevent MailChimp from redirecting to its settings page during the OBW flow.
 			add_option( 'mailchimp_woocommerce_plugin_do_activation_redirect', false );
@@ -1932,39 +1856,18 @@ class WC_Admin_Setup_Wizard {
 		exit;
 	}
 
+	// TODO: Check here if the shipping is affected.
 	protected function wc_setup_activate_get_feature_list() {
 		$features = array();
-
-		$stripe_settings = get_option( 'woocommerce_stripe_settings', false );
-		$stripe_enabled  = is_array( $stripe_settings )
-			&& isset( $stripe_settings['create_account'] ) && 'yes' === $stripe_settings['create_account']
-			&& isset( $stripe_settings['enabled'] ) && 'yes' === $stripe_settings['enabled'];
-		$ppec_settings   = get_option( 'woocommerce_ppec_paypal_settings', false );
-		$ppec_enabled    = is_array( $ppec_settings )
-			&& isset( $ppec_settings['reroute_requests'] ) && 'yes' === $ppec_settings['reroute_requests']
-			&& isset( $ppec_settings['enabled'] ) && 'yes' === $ppec_settings['enabled'];
-
-		$features['payment'] = $stripe_enabled || $ppec_enabled;
-		$features['taxes']   = (bool) get_option( 'woocommerce_setup_automated_taxes', false );
-		$features['labels']  = (bool) get_option( 'woocommerce_setup_shipping_labels', false );
-
 		return $features;
 	}
 
 	protected function wc_setup_activate_get_feature_list_str() {
 		$features = $this->wc_setup_activate_get_feature_list();
-		if ( $features['payment'] && $features['taxes'] && $features['labels'] ) {
-			return __( 'payment setup, automated taxes and discounted shipping labels', 'woocommerce' );
-		} else if ( $features['payment'] && $features['taxes'] ) {
-			return __( 'payment setup and automated taxes', 'woocommerce' );
-		} else if ( $features['payment'] && $features['labels'] ) {
+		if ( $features['payment'] && $features['labels'] ) {
 			return __( 'payment setup and discounted shipping labels', 'woocommerce' );
 		} else if ( $features['payment'] ) {
 			return __( 'payment setup', 'woocommerce' );
-		} else if ( $features['taxes'] && $features['labels'] ) {
-			return __( 'automated taxes and discounted shipping labels', 'woocommerce' );
-		} else if ( $features['taxes'] ) {
-			return __( 'automated taxes', 'woocommerce' );
 		} else if ( $features['labels'] ) {
 			return __( 'discounted shipping labels', 'woocommerce' );
 		}
@@ -1995,30 +1898,31 @@ class WC_Admin_Setup_Wizard {
 		?>
 		<h1><?php esc_html_e( "You're ready to start selling!", 'woocommerce' ); ?></h1>
 
-		<div class="woocommerce-message woocommerce-newsletter">
+		<!--TODO: Remove the signup call for woocommerce->
+		<!-- <div class="woocommerce-message woocommerce-newsletter">
 			<p><?php esc_html_e( "We're here for you — get tips, product updates, and inspiration straight to your mailbox.", 'woocommerce' ); ?></p>
 			<form action="//woocommerce.us8.list-manage.com/subscribe/post?u=2c1434dc56f9506bf3c3ecd21&amp;id=13860df971&amp;SIGNUPPAGE=plugin" method="post" target="_blank" novalidate>
 				<div class="newsletter-form-container">
 					<input
 						class="newsletter-form-email"
 						type="email"
-						value="<?php echo esc_attr( $user_email ); ?>"
+						value="<?php //echo esc_attr( $user_email ); ?>"
 						name="EMAIL"
-						placeholder="<?php esc_attr_e( 'Email address', 'woocommerce' ); ?>"
+						placeholder="<?php //esc_attr_e( 'Email address', 'woocommerce' ); ?>"
 						required
 					>
 					<p class="wc-setup-actions step newsletter-form-button-container">
 						<button
 							type="submit"
-							value="<?php esc_html_e( 'Yes please!', 'woocommerce' ); ?>"
+							value="<?php //esc_html_e( 'Yes please!', 'woocommerce' ); ?>"
 							name="subscribe"
 							id="mc-embedded-subscribe"
 							class="button-primary button newsletter-form-button"
-						><?php esc_html_e( 'Yes please!', 'woocommerce' ); ?></button>
+						><?php //esc_html_e( 'Yes please!', 'woocommerce' ); ?></button>
 					</p>
 				</div>
 			</form>
-		</div>
+		</div> -->
 
 		<ul class="wc-wizard-next-steps">
 			<li class="wc-wizard-next-step-item">
