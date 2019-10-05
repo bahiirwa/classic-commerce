@@ -349,7 +349,7 @@ class WC_Admin_Setup_Wizard {
 
 	/**
 	 * Initial "store setup" step.
-	 * Location, product type, page setup.
+	 * Location, product type, page setup, and tracking opt-in.
 	 */
 	public function wc_setup_store_setup() {
 		$address        = WC()->countries->get_base_address();
@@ -849,30 +849,6 @@ class WC_Admin_Setup_Wizard {
 							</span>
 						</div>
 					</li>
-					<li class="wc-wizard-service-info">
-						<p>
-						<?php
-						printf(
-							wp_kses(
-								/* translators: %1$s: live rates tooltip text, %2$s: shipping extensions URL */
-								__( 'If you\'d like to offer <span class="help_tip" data-tip="%1$s">live rates</span> from a specific carrier (e.g. UPS) you can find a variety of extensions available for WooCommerce <a href="%2$s" target="_blank">here</a>.', 'woocommerce' ),
-								array(
-									'span' => array(
-										'class'    => array(),
-										'data-tip' => array(),
-									),
-									'a' => array(
-										'href'   => array(),
-										'target' => array(),
-									),
-								)
-							),
-							esc_attr__( 'A live rate is the exact cost to ship an order, quoted directly from the shipping carrier.', 'woocommerce' ),
-							'https://woocommerce.com/product-category/woocommerce-extensions/shipping-methods/shipping-carriers/'
-						);
-						?>
-						</p>
-					</li>
 				</ul>
 			<?php endif; ?>
 
@@ -1033,6 +1009,45 @@ class WC_Admin_Setup_Wizard {
 	}
 
 	/**
+	 * Is PayPal currency supported.
+	 *
+	 * @param string $currency Currency code.
+	 * @return boolean
+	 */
+	protected function is_paypal_supported_currency( $currency ) {
+		$supported_currencies = array(
+			'AUD',
+			'BRL',
+			'CAD',
+			'MXN',
+			'NZD',
+			'HKD',
+			'SGD',
+			'USD',
+			'EUR',
+			'JPY',
+			'TRY',
+			'NOK',
+			'CZK',
+			'DKK',
+			'HUF',
+			'ILS',
+			'MYR',
+			'PHP',
+			'PLN',
+			'SEK',
+			'CHF',
+			'TWD',
+			'THB',
+			'GBP',
+			'RMB',
+			'RUB',
+			'INR',
+		);
+		return in_array( $currency, $supported_currencies, true );
+	}
+
+	/**
 	 * Is ShipStation country supported
 	 *
 	 * @param string $country_code Country code.
@@ -1042,6 +1057,18 @@ class WC_Admin_Setup_Wizard {
 			'AU', // Australia.
 			'CA', // Canada.
 			'GB', // United Kingdom.
+		);
+		return in_array( $country_code, $supported_countries, true );
+	}
+
+	/**
+	 * Is WooCommerce Services shipping label country supported
+	 *
+	 * @param string $country_code Country code.
+	 */
+	protected function is_wcs_shipping_labels_supported_country( $country_code ) {
+		$supported_countries = array(
+			'US', // United States.
 		);
 		return in_array( $country_code, $supported_countries, true );
 	}
@@ -1066,7 +1093,54 @@ class WC_Admin_Setup_Wizard {
 	protected function get_wizard_available_in_cart_payment_gateways() {
 		$user_email = $this->get_current_user_email();
 
-		return array();
+		$paypal_checkout_description = '<p>' . sprintf(
+			/* translators: %s: URL */
+			__( 'Safe and secure payments using credit cards or your customer\'s PayPal account. <a href="%s" target="_blank">Learn more</a>.', 'woocommerce' ),
+			'https://woocommerce.com/products/woocommerce-gateway-paypal-checkout/'
+		) . '</p>';
+
+		return array(
+			'ppec_paypal'     => array(
+				'name'        => __( 'WooCommerce PayPal Checkout Gateway', 'woocommerce' ),
+				'image'       => WC()->plugin_url() . '/assets/images/paypal.png',
+				'description' => $paypal_checkout_description,
+				'enabled'     => false,
+				'class'       => 'checked paypal-logo',
+				'repo-slug'   => 'woocommerce-gateway-paypal-express-checkout',
+				'settings'    => array(
+					'reroute_requests' => array(
+						'label'       => __( 'Set up PayPal for me using this email:', 'woocommerce' ),
+						'type'        => 'checkbox',
+						'value'       => 'yes',
+						'default'     => 'yes',
+						'placeholder' => '',
+						'required'    => false,
+						'plugins'     => $this->get_wcs_requisite_plugins(),
+					),
+					'email'            => array(
+						'label'       => __( 'Direct payments to email address:', 'woocommerce' ),
+						'type'        => 'email',
+						'value'       => $user_email,
+						'placeholder' => __( 'Email address to receive payments', 'woocommerce' ),
+						'required'    => true,
+					),
+				),
+			),
+			'paypal'          => array(
+				'name'        => __( 'PayPal Standard', 'woocommerce' ),
+				'description' => __( 'Accept payments via PayPal using account balance or credit card.', 'woocommerce' ),
+				'image'       => '',
+				'settings'    => array(
+					'email' => array(
+						'label'       => __( 'PayPal email address:', 'woocommerce' ),
+						'type'        => 'email',
+						'value'       => $user_email,
+						'placeholder' => __( 'PayPal email address', 'woocommerce' ),
+						'required'    => true,
+					),
+				),
+			),
+		);
 	}
 
 	/**
@@ -1079,6 +1153,8 @@ class WC_Admin_Setup_Wizard {
 		$country  = WC()->countries->get_base_country();
 		$currency = get_woocommerce_currency();
 
+		$can_paypal  = $this->is_paypal_supported_currency( $currency );
+
 		if ( ! current_user_can( 'install_plugins' ) ) {
 			return $can_paypal ? array( 'paypal' => $gateways['paypal'] ) : array();
 		}
@@ -1090,10 +1166,18 @@ class WC_Admin_Setup_Wizard {
 				$spotlight => $gateways[ $spotlight ],
 			);
 
+			if ( $can_paypal ) {
+				$offered_gateways += array( 'ppec_paypal' => $gateways['ppec_paypal'] );
+			}
+
 			return $offered_gateways;
 		}
 
 		$offered_gateways = array();
+
+		if ( $can_paypal ) {
+			$offered_gateways += array( 'ppec_paypal' => $gateways['ppec_paypal'] );
+		}
 
 		return $offered_gateways;
 	}
@@ -1340,6 +1424,10 @@ class WC_Admin_Setup_Wizard {
 			}
 			// @codingStandardsIgnoreSEnd
 
+			if ( 'ppec_paypal' === $gateway_id && empty( $settings['reroute_requests'] ) ) {
+				unset( $settings['enabled'] );
+			}
+
 			$settings_key = 'woocommerce_' . $gateway_id . '_settings';
 			$previously_saved_settings = array_filter( (array) get_option( $settings_key, array() ) );
 			update_option( $settings_key, array_merge( $previously_saved_settings, $settings ) );
@@ -1400,7 +1488,7 @@ class WC_Admin_Setup_Wizard {
 					$this->should_show_theme()
 					&& $this->should_show_mailchimp()
 					) :
-				esc_html_e( 'Select from the list below to enable MailChimp’s best-in-class email services — and design your store with our official, free WooCommerce theme.', 'woocommerce' );
+				esc_html_e( 'Select from the list below to enable MailChimp’s best-in-class email services.', 'woocommerce' );
 			else :
 				esc_html_e( 'Enhance your store with these recommended features.', 'woocommerce' );
 			endif;
@@ -1408,6 +1496,11 @@ class WC_Admin_Setup_Wizard {
 		<form method="post">
 			<ul class="recommended-step">
 				<?php
+				if ( $this->should_show_theme() ) :
+					$theme      = wp_get_theme();
+					$theme_name = $theme['Name'];
+				endif;
+
 				if ( $this->should_show_mailchimp() ) :
 					$this->display_recommended_item( array(
 						'type'        => 'mailchimp',
@@ -1455,7 +1548,6 @@ class WC_Admin_Setup_Wizard {
 		exit;
 	}
 
-	// TODO: Check here if the shipping is affected.
 	protected function wc_setup_activate_get_feature_list() {
 		$features = array();
 		return $features;
