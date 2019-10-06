@@ -1,12 +1,4 @@
 <?php
-/**
- * Helper Class
- *
- * TODO: Convert wc-helper-nonce into public class var.
- *
- * @package  ClassicCommerce/Admin/Helper
- */
-
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
@@ -19,8 +11,6 @@ if ( ! defined( 'ABSPATH' ) ) {
 class WC_Helper {
 	/**
 	 * A log object returned by wc_get_logger().
-	 *
-	 * @var string
 	 */
 	public static $log;
 
@@ -45,11 +35,11 @@ class WC_Helper {
 		add_filter( 'extra_plugin_headers', array( __CLASS__, 'extra_headers' ) );
 		add_filter( 'extra_theme_headers', array( __CLASS__, 'extra_headers' ) );
 
-		// Attempt to toggle subscription state upon plugin activation/deactivation.
+		// Attempt to toggle subscription state upon plugin activation/deactivation
 		add_action( 'activated_plugin', array( __CLASS__, 'activated_plugin' ) );
 		add_action( 'deactivated_plugin', array( __CLASS__, 'deactivated_plugin' ) );
 
-		// Add some nags about extension updates.
+		// Add some nags about extension updates
 		add_action( 'admin_notices', array( __CLASS__, 'admin_notices' ) );
 
 		do_action( 'woocommerce_helper_loaded' );
@@ -296,7 +286,6 @@ class WC_Helper {
 
 			if ( $data['_has_update'] ) {
 				$action = array(
-					/* translators: %s: Product version  */
 					'message'      => sprintf( __( 'Version %s is <strong>available</strong>. To enable this update you need to <strong>purchase</strong> a new subscription.', 'woocommerce' ), esc_html( $updates[ $data['_product_id'] ]['version'] ) ),
 					'button_label' => __( 'Purchase', 'woocommerce' ),
 					'button_url'   => $data['_product_url'],
@@ -327,11 +316,11 @@ class WC_Helper {
 			WC_Helper_Options::update( 'auth', $auth );
 		}
 
-		// Sort alphabetically.
+		// Sort alphabetically
 		uasort( $subscriptions, array( __CLASS__, '_sort_by_product_name' ) );
 		uasort( $no_subscriptions, array( __CLASS__, '_sort_by_name' ) );
 
-		// Filters.
+		// Filters
 		self::get_filters_counts( $subscriptions ); // Warm it up.
 		self::_filter( $subscriptions, self::get_current_filter() );
 
@@ -396,10 +385,9 @@ class WC_Helper {
 	public static function get_current_filter() {
 		$current_filter = 'all';
 		$valid_filters  = array_keys( self::get_filters() );
-		$get_filter = ! empty( $_GET['filter'] );
 
-		if ( $get_filter && in_array( $get_filter, $valid_filters ) ) {
-			$current_filter = $get_filter;
+		if ( ! empty( $_GET['filter'] ) && in_array( $_GET['filter'], $valid_filters ) ) {
+			$current_filter = $_GET['filter'];
 		}
 
 		return $current_filter;
@@ -472,18 +460,16 @@ class WC_Helper {
 	 * @return array Array pairs of message/type strings with notices.
 	 */
 	private static function _get_return_notices() {
-		$wc_helper_status = ! empty( $_GET['wc-helper-status'] );
-
-		$return_status = $wc_helper_status ? $wc_helper_status : null;
+		$return_status = isset( $_GET['wc-helper-status'] ) ? $_GET['wc-helper-status'] : null;
 		$notices       = array();
 
 		switch ( $return_status ) {
 			case 'activate-success':
-				$subscription = self::_get_subscriptions_from_product_id( absint( ! empty( $_GET['wc-helper-product-id'] ) ) );
+				$subscription = self::_get_subscriptions_from_product_id( absint( $_GET['wc-helper-product-id'] ) );
 				$notices[]    = array(
 					'type'    => 'updated',
+					/* translators: %s: product name */
 					'message' => sprintf(
-						/* translators: %s: product name */
 						__( '%s activated successfully. You will now receive updates for this product.', 'woocommerce' ),
 						'<strong>' . esc_html( $subscription['product_name'] ) . '</strong>'
 					),
@@ -494,8 +480,8 @@ class WC_Helper {
 				$subscription = self::_get_subscriptions_from_product_id( absint( $_GET['wc-helper-product-id'] ) );
 				$notices[]    = array(
 					'type'    => 'error',
+					/* translators: %s: product name */
 					'message' => sprintf(
-						/* translators: %s: product name */
 						__( 'An error has occurred when activating %s. Please try again later.', 'woocommerce' ),
 						'<strong>' . esc_html( $subscription['product_name'] ) . '</strong>'
 					),
@@ -506,8 +492,8 @@ class WC_Helper {
 				$subscription = self::_get_subscriptions_from_product_id( absint( $_GET['wc-helper-product-id'] ) );
 				$local        = self::_get_local_from_product_id( absint( $_GET['wc-helper-product-id'] ) );
 
+				/* translators: %s: product name */
 				$message = sprintf(
-					/* translators: %s: product name */
 					__( 'Subscription for %s deactivated successfully. You will no longer receive updates for this product.', 'woocommerce' ),
 					'<strong>' . esc_html( $subscription['product_name'] ) . '</strong>'
 				);
@@ -524,8 +510,8 @@ class WC_Helper {
 						), admin_url( 'admin.php' )
 					);
 
+					/* translators: %1$s: product name, %2$s: deactivate url */
 					$message = sprintf(
-						/* translators: %1$s: product name, %2$s: deactivate url */
 						__( 'Subscription for %1$s deactivated successfully. You will no longer receive updates for this product. <a href="%2$s">Click here</a> if you wish to deactivate the plugin as well.', 'woocommerce' ),
 						'<strong>' . esc_html( $subscription['product_name'] ) . '</strong>', esc_url( $deactivate_plugin_url )
 					);
@@ -541,8 +527,8 @@ class WC_Helper {
 				$subscription = self::_get_subscriptions_from_product_id( absint( $_GET['wc-helper-product-id'] ) );
 				$notices[]    = array(
 					'type'    => 'error',
+					/* translators: %s: product name */
 					'message' => sprintf(
-						/* translators: %s: product name */
 						__( 'An error has occurred when deactivating the subscription for %s. Please try again later.', 'woocommerce' ),
 						'<strong>' . esc_html( $subscription['product_name'] ) . '</strong>'
 					),
@@ -553,8 +539,8 @@ class WC_Helper {
 				$subscription = self::_get_subscriptions_from_product_id( absint( $_GET['wc-helper-product-id'] ) );
 				$notices[]    = array(
 					'type'    => 'updated',
+					/* translators: %s: product name */
 					'message' => sprintf(
-						/* translators: %s: product name */
 						__( 'The extension %s has been deactivated successfully.', 'woocommerce' ),
 						'<strong>' . esc_html( $subscription['product_name'] ) . '</strong>'
 					),
@@ -565,8 +551,8 @@ class WC_Helper {
 				$subscription = self::_get_subscriptions_from_product_id( absint( $_GET['wc-helper-product-id'] ) );
 				$notices[]    = array(
 					'type'    => 'error',
+					/* translators: %1$s: product name, %2$s: plugins screen url */
 					'message' => sprintf(
-						/* translators: %1$s: product name, %2$s: plugins screen url */
 						__( 'An error has occurred when deactivating the extension %1$s. Please proceed to the <a href="%2$s">Plugins screen</a> to deactivate it manually.', 'woocommerce' ),
 						'<strong>' . esc_html( $subscription['product_name'] ) . '</strong>', admin_url( 'plugins.php' )
 					),
@@ -600,8 +586,6 @@ class WC_Helper {
 
 	/**
 	 * Various early-phase actions with possible redirects.
-	 *
-	 * @param string $screen // Current screen name.
 	 */
 	public static function current_screen( $screen ) {
 		$wc_screen_id = sanitize_title( __( 'WooCommerce', 'woocommerce' ) );
@@ -647,9 +631,7 @@ class WC_Helper {
 	 * Initiate a new OAuth connection.
 	 */
 	private static function _helper_auth_connect() {
-		$wc_helper_nonce = empty( $_GET['wc-helper-nonce'] );
-
-		if ( $wc_helper_nonce || ! wp_verify_nonce( $wc_helper_nonce, 'connect' ) ) {
+		if ( empty( $_GET['wc-helper-nonce'] ) || ! wp_verify_nonce( $_GET['wc-helper-nonce'], 'connect' ) ) {
 			self::log( 'Could not verify nonce in _helper_auth_connect' );
 			wp_die( 'Could not verify nonce' );
 		}
@@ -701,9 +683,7 @@ class WC_Helper {
 	 * Return from WooCommerce.com OAuth flow.
 	 */
 	private static function _helper_auth_return() {
-		$wc_helper_nonce = empty( $_GET['wc-helper-nonce'] );
-
-		if ( ( $wc_helper_nonce ) || ! wp_verify_nonce( $wc_helper_nonce, 'connect' ) ) {
+		if ( empty( $_GET['wc-helper-nonce'] ) || ! wp_verify_nonce( $_GET['wc-helper-nonce'], 'connect' ) ) {
 			self::log( 'Could not verify nonce in _helper_auth_return' );
 			wp_die( 'Something went wrong' );
 		}
@@ -724,7 +704,7 @@ class WC_Helper {
 		$request = WC_Helper_API::post(
 			'oauth/access_token', array(
 				'body' => array(
-					'request_token' => isset( $_GET['request_token'] ),
+					'request_token' => $_GET['request_token'],
 					'home_url'      => home_url(),
 				),
 			)
@@ -779,9 +759,7 @@ class WC_Helper {
 	 * Disconnect from WooCommerce.com, clear OAuth tokens.
 	 */
 	private static function _helper_auth_disconnect() {
-		$wc_helper_nonce = empty( $_GET['wc-helper-nonce'] );
-
-		if ( $wc_helper_nonce || ! wp_verify_nonce( $wc_helper_nonce, 'disconnect' ) ) {
+		if ( empty( $_GET['wc-helper-nonce'] ) || ! wp_verify_nonce( $_GET['wc-helper-nonce'], 'disconnect' ) ) {
 			self::log( 'Could not verify nonce in _helper_auth_disconnect' );
 			wp_die( 'Could not verify nonce' );
 		}
@@ -814,9 +792,7 @@ class WC_Helper {
 	 * User hit the Refresh button, clear all caches.
 	 */
 	private static function _helper_auth_refresh() {
-		$wc_helper_nonce = empty( $_GET['wc-helper-nonce'] );
-
-		if ( $wc_helper_nonce || ! wp_verify_nonce( $wc_helper_nonce, 'refresh' ) ) {
+		if ( empty( $_GET['wc-helper-nonce'] ) || ! wp_verify_nonce( $_GET['wc-helper-nonce'], 'refresh' ) ) {
 			self::log( 'Could not verify nonce in _helper_auth_refresh' );
 			wp_die( 'Could not verify nonce' );
 		}
@@ -842,11 +818,10 @@ class WC_Helper {
 	 * Active a product subscription.
 	 */
 	private static function _helper_subscription_activate() {
-		$product_key = isset( $_GET['wc-helper-product-key'] );
-		$product_id  = absint( isset( $_GET['wc-helper-product-id'] ) );
-		$wc_helper_nonce = empty( $_GET['wc-helper-nonce'] );
+		$product_key = $_GET['wc-helper-product-key'];
+		$product_id  = absint( $_GET['wc-helper-product-id'] );
 
-		if ( $wc_helper_nonce || ! wp_verify_nonce( $wc_helper_nonce, 'activate:' . $product_key ) ) {
+		if ( empty( $_GET['wc-helper-nonce'] ) || ! wp_verify_nonce( $_GET['wc-helper-nonce'], 'activate:' . $product_key ) ) {
 			self::log( 'Could not verify nonce in _helper_subscription_activate' );
 			wp_die( 'Could not verify nonce' );
 		}
@@ -895,11 +870,10 @@ class WC_Helper {
 	 * Deactivate a product subscription.
 	 */
 	private static function _helper_subscription_deactivate() {
-		$product_key = isset( $_GET['wc-helper-product-key'] );
-		$product_id  = absint( isset( $_GET['wc-helper-product-id'] ) );
-		$wc_helper_nonce = empty( $_GET['wc-helper-nonce'] );
+		$product_key = $_GET['wc-helper-product-key'];
+		$product_id  = absint( $_GET['wc-helper-product-id'] );
 
-		if ( $wc_helper_nonce || ! wp_verify_nonce( $wc_helper_nonce, 'deactivate:' . $product_key ) ) {
+		if ( empty( $_GET['wc-helper-nonce'] ) || ! wp_verify_nonce( $_GET['wc-helper-nonce'], 'deactivate:' . $product_key ) ) {
 			self::log( 'Could not verify nonce in _helper_subscription_deactivate' );
 			wp_die( 'Could not verify nonce' );
 		}
@@ -940,11 +914,10 @@ class WC_Helper {
 	 * Deactivate a plugin.
 	 */
 	private static function _helper_plugin_deactivate() {
-		$product_id  = absint( isset( $_GET['wc-helper-product-id'] ) );
+		$product_id  = absint( $_GET['wc-helper-product-id'] );
 		$deactivated = false;
-		$wp_helper_nonce = empty( $_GET['wc-helper-nonce'] );
 
-		if ( $wp_helper_nonce || ! wp_verify_nonce( $wp_helper_nonce, 'deactivate-plugin:' . $product_id ) ) {
+		if ( empty( $_GET['wc-helper-nonce'] ) || ! wp_verify_nonce( $_GET['wc-helper-nonce'], 'deactivate-plugin:' . $product_id ) ) {
 			self::log( 'Could not verify nonce in _helper_plugin_deactivate' );
 			wp_die( 'Could not verify nonce' );
 		}
@@ -1030,8 +1003,6 @@ class WC_Helper {
 	 * Additional theme style.css and plugin file headers.
 	 *
 	 * Format: Woo: product_id:file_id
-	 *
-	 * @param string $headers // Headers.
 	 */
 	public static function extra_headers( $headers ) {
 		$headers[] = 'Woo';
@@ -1094,7 +1065,7 @@ class WC_Helper {
 		foreach ( $themes as $theme ) {
 			$header = $theme->get( 'Woo' );
 
-			// Backwards compatibility for theme_info.txt .
+			// Backwards compatibility for theme_info.txt
 			if ( ! $header ) {
 				$txt = $theme->get_stylesheet_directory() . '/theme_info.txt';
 				if ( is_readable( $txt ) ) {
@@ -1140,9 +1111,7 @@ class WC_Helper {
 	 */
 	public static function get_subscriptions() {
 		$cache_key = '_woocommerce_helper_subscriptions';
-		$data = get_transient( $cache_key );
-
-		if ( false !== ( $data ) ) {
+		if ( false !== ( $data = get_transient( $cache_key ) ) ) {
 			return $data;
 		}
 
@@ -1179,7 +1148,7 @@ class WC_Helper {
 	public static function activated_plugin( $filename ) {
 		$plugins = self::get_local_woo_plugins();
 
-		// Not a local woo plugin.
+		// Not a local woo plugin
 		if ( empty( $plugins[ $filename ] ) ) {
 			return;
 		}
@@ -1193,7 +1162,7 @@ class WC_Helper {
 		$plugin        = $plugins[ $filename ];
 		$subscriptions = self::_get_subscriptions_from_product_id( $plugin['_product_id'], false );
 
-		// No valid subscriptions for this product.
+		// No valid subscriptions for this product
 		if ( empty( $subscriptions ) ) {
 			return;
 		}
@@ -1259,7 +1228,7 @@ class WC_Helper {
 	public static function deactivated_plugin( $filename ) {
 		$plugins = self::get_local_woo_plugins();
 
-		// Not a local woo plugin.
+		// Not a local woo plugin
 		if ( empty( $plugins[ $filename ] ) ) {
 			return;
 		}
@@ -1274,7 +1243,7 @@ class WC_Helper {
 		$subscriptions = self::_get_subscriptions_from_product_id( $plugin['_product_id'], false );
 		$site_id       = absint( $auth['site_id'] );
 
-		// No valid subscriptions for this product.
+		// No valid subscriptions for this product
 		if ( empty( $subscriptions ) ) {
 			return;
 		}
@@ -1335,7 +1304,7 @@ class WC_Helper {
 		// Add a note about available extension updates if Woo core has an update available.
 		$notice = self::_get_extensions_update_notice();
 		if ( ! empty( $notice ) ) {
-			echo '<div class="updated woocommerce-message"><p>' . esc_html( $notice ) . '</p></div>';
+			echo '<div class="updated woocommerce-message"><p>' . $notice . '</p></div>';
 		}
 	}
 
@@ -1385,7 +1354,7 @@ class WC_Helper {
 			/* translators: %s: helper screen url */
 			$notice = __( '<a href="%s">Connect your store</a> to WooCommerce.com to receive extensions updates and support.', 'woocommerce' );
 			$notice = sprintf( $notice, admin_url( 'admin.php?page=wc-addons&section=helper' ) );
-			echo '<div class="updated woocommerce-message"><p>' . esc_html( $notice ) . '</p></div>';
+			echo '<div class="updated woocommerce-message"><p>' . $notice . '</p></div>';
 		}
 	}
 
@@ -1414,8 +1383,8 @@ class WC_Helper {
 			return;
 		}
 
+		/* translators: %1$s: helper url, %2$d: number of extensions */
 		return sprintf(
-			/* translators: %1$s: helper url, %2$d: number of extensions */
 			_n( 'Note: You currently have <a href="%1$s">%2$d paid extension</a> which should be updated first before updating WooCommerce.', 'Note: You currently have <a href="%1$s">%2$d paid extensions</a> which should be updated first before updating WooCommerce.', $available, 'woocommerce' ),
 			admin_url( 'admin.php?page=wc-addons&section=helper' ), $available
 		);
@@ -1454,7 +1423,7 @@ class WC_Helper {
 	/**
 	 * Flush auth cache.
 	 *
-	 * Accessed privately.
+	 * @access private
 	 */
 	public static function _flush_authentication_cache() {
 		$request = WC_Helper_API::get(
@@ -1492,8 +1461,8 @@ class WC_Helper {
 	/**
 	 * Sort subscriptions by the product_name.
 	 *
-	 * @param array $a Subscription array.
-	 * @param array $b Subscription array.
+	 * @param array $a Subscription array
+	 * @param array $b Subscription array
 	 *
 	 * @return int
 	 */
@@ -1504,8 +1473,8 @@ class WC_Helper {
 	/**
 	 * Sort subscriptions by the Name.
 	 *
-	 * @param array $a Product array.
-	 * @param array $b Product array.
+	 * @param array $a Product array
+	 * @param array $b Product array
 	 *
 	 * @return int
 	 */
@@ -1517,7 +1486,8 @@ class WC_Helper {
 	 * Log a helper event.
 	 *
 	 * @param string $message Log message.
-	 * @param string $level Optional, defaults to info, valid levels: emergency|alert|critical|error|warning|notice|info|debug.
+	 * @param string $level Optional, defaults to info, valid levels:
+	 *     emergency|alert|critical|error|warning|notice|info|debug
 	 */
 	public static function log( $message, $level = 'info' ) {
 		if ( ! defined( 'WP_DEBUG' ) || ! WP_DEBUG ) {
