@@ -67,23 +67,6 @@ class WC_Admin_Setup_Wizard {
 	}
 
 	/**
-	 * The theme "extra" should only be shown if the current user can modify themes
-	 * and the store doesn't already have a WooCommerce theme.
-	 *
-	 * @return boolean
-	 */
-	protected function should_show_theme() {
-		$support_woocommerce = current_theme_supports( 'woocommerce' ) && ! $this->is_default_theme();
-
-		return (
-			current_user_can( 'install_themes' ) &&
-			current_user_can( 'switch_themes' ) &&
-			! is_multisite() &&
-			! $support_woocommerce
-		);
-	}
-
-	/**
 	 * Is the user using a default WP theme?
 	 *
 	 * @return boolean
@@ -120,8 +103,7 @@ class WC_Admin_Setup_Wizard {
 	 * @return boolean
 	 */
 	protected function should_show_recommended_step() {
-		return $this->should_show_theme()
-			|| $this->should_show_mailchimp();
+		return $this->should_show_mailchimp();
 	}
 
 	/**
@@ -1484,10 +1466,7 @@ class WC_Admin_Setup_Wizard {
 			// If we're displaying all of the recommended features, show the full description. Otherwise, display a placeholder.
 			// We're not translating all of the different permutations to save on translations,
 			// and the default is the most common.
-			if (
-					$this->should_show_theme()
-					&& $this->should_show_mailchimp()
-					) :
+			if ( $this->should_show_mailchimp() ) :
 				esc_html_e( 'Select from the list below to enable MailChimp’s best-in-class email services.', 'woocommerce' );
 			else :
 				esc_html_e( 'Enhance your store with these recommended features.', 'woocommerce' );
@@ -1496,11 +1475,6 @@ class WC_Admin_Setup_Wizard {
 		<form method="post">
 			<ul class="recommended-step">
 				<?php
-				if ( $this->should_show_theme() ) :
-					$theme      = wp_get_theme();
-					$theme_name = $theme['Name'];
-				endif;
-
 				if ( $this->should_show_mailchimp() ) :
 					$this->display_recommended_item( array(
 						'type'        => 'mailchimp',
