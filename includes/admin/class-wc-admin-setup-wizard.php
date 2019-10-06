@@ -147,7 +147,11 @@ class WC_Admin_Setup_Wizard {
 				'states'                  => WC()->countries->get_states(),
 				'current_step'            => isset( $this->steps[ $this->step ] ) ? $this->step : false,
 				'i18n'                    => array(
-					'extra_plugins' => array(),
+					'extra_plugins' => array(
+						'payment' => array(
+							'ppec_paypal_reroute_requests'                       => __( 'PayPal setup is powered by WooCommerce', 'woocommerce' ),
+						),
+					),
 				),
 			)
 		);
@@ -1086,7 +1090,7 @@ class WC_Admin_Setup_Wizard {
 				'name'        => __( 'WooCommerce PayPal Checkout Gateway', 'woocommerce' ),
 				'image'       => WC()->plugin_url() . '/assets/images/paypal.png',
 				'description' => $paypal_checkout_description,
-				'enabled'     => false,
+				'enabled'     => true,
 				'class'       => 'checked paypal-logo',
 				'repo-slug'   => 'woocommerce-gateway-paypal-express-checkout',
 				'settings'    => array(
