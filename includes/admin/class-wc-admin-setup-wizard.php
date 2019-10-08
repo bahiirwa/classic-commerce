@@ -182,7 +182,6 @@ class WC_Admin_Setup_Wizard {
 			'wc-setup',
 			'wc_setup_params',
 			array(
-				'pending_jetpack_install' => $pending_jetpack ? 'yes' : 'no',
 				'states'                  => WC()->countries->get_states(),
 				'current_step'            => isset( $this->steps[ $this->step ] ) ? $this->step : false,
 				'i18n'                    => array(
