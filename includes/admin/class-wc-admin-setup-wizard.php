@@ -67,6 +67,23 @@ class WC_Admin_Setup_Wizard {
 	}
 
 	/**
+	 * The theme "extra" should only be shown if the current user can modify themes
+	 * and the store doesn't already have a WooCommerce theme.
+	 *
+	 * @return boolean
+	 */
+	protected function should_show_theme() {
+		$support_woocommerce = current_theme_supports( 'woocommerce' ) && ! $this->is_default_theme();
+
+		return (
+			current_user_can( 'install_themes' ) &&
+			current_user_can( 'switch_themes' ) &&
+			! is_multisite() &&
+			! $support_woocommerce
+		);
+	}
+
+	/**
 	 * Is the user using a default WP theme?
 	 *
 	 * @return boolean
@@ -87,6 +104,25 @@ class WC_Admin_Setup_Wizard {
 	}
 
 	/**
+	 * The "automated tax" extra should only be shown if the current user can
+	 * install plugins and the store is in a supported country.
+	 */
+	protected function should_show_automated_tax() {
+		if ( ! current_user_can( 'install_plugins' ) ) {
+			return false;
+		}
+
+		$country_code = WC()->countries->get_base_country();
+		// https://developers.taxjar.com/api/reference/#countries .
+		$tax_supported_countries = array_merge(
+			array( 'US', 'CA', 'AU' ),
+			WC()->countries->get_european_union_countries()
+		);
+
+		return in_array( $country_code, $tax_supported_countries, true );
+	}
+
+	/**
 	 * Should we show the MailChimp install option?
 	 * True only if the user can install plugins.
 	 *
@@ -103,7 +139,9 @@ class WC_Admin_Setup_Wizard {
 	 * @return boolean
 	 */
 	protected function should_show_recommended_step() {
-		return $this->should_show_mailchimp();
+		return $this->should_show_theme()
+			|| $this->should_show_automated_tax()
+			|| $this->should_show_mailchimp();
 	}
 
 	/**
@@ -144,12 +182,15 @@ class WC_Admin_Setup_Wizard {
 			'wc-setup',
 			'wc_setup_params',
 			array(
+				'pending_jetpack_install' => $pending_jetpack ? 'yes' : 'no',
 				'states'                  => WC()->countries->get_states(),
 				'current_step'            => isset( $this->steps[ $this->step ] ) ? $this->step : false,
 				'i18n'                    => array(
 					'extra_plugins' => array(
 						'payment' => array(
-							'ppec_paypal_reroute_requests'                       => __( 'PayPal setup is powered by WooCommerce', 'woocommerce' ),
+							'stripe_create_account'                              => __( 'Stripe setup is powered by Jetpack and WooCommerce Services.', 'woocommerce' ),
+							'ppec_paypal_reroute_requests'                       => __( 'PayPal setup is powered by Jetpack and WooCommerce Services.', 'woocommerce' ),
+							'stripe_create_account,ppec_paypal_reroute_requests' => __( 'Stripe and PayPal setup are powered by Jetpack and WooCommerce Services.', 'woocommerce' ),
 						),
 					),
 				),
@@ -200,11 +241,6 @@ class WC_Admin_Setup_Wizard {
 		// Hide shipping step if the store is selling digital products only.
 		if ( 'virtual' === get_option( 'woocommerce_product_type' ) ) {
 			unset( $default_steps['shipping'] );
-		}
-
-		// Hide activate section when the user does not have capabilities to install plugins, think multiside admins not being a super admin.
-		if ( ! current_user_can( 'install_plugins' ) ) {
-			unset( $default_steps['activate'] );
 		}
 
 		$this->steps = apply_filters( 'woocommerce_setup_wizard_steps', $default_steps );
@@ -280,7 +316,7 @@ class WC_Admin_Setup_Wizard {
 		?>
 			<?php if ( 'store_setup' === $this->step ) : ?>
 				<a class="wc-setup-footer-links" href="<?php echo esc_url( admin_url() ); ?>"><?php esc_html_e( 'Not right now', 'woocommerce' ); ?></a>
-			<?php elseif ( 'recommended' === $this->step || 'activate' === $this->step ) : ?>
+			<?php elseif ( 'recommended' === $this->step ) : ?>
 				<a class="wc-setup-footer-links" href="<?php echo esc_url( $this->get_next_step_link() ); ?>"><?php esc_html_e( 'Skip this step', 'woocommerce' ); ?></a>
 			<?php endif; ?>
 			</body>
@@ -294,6 +330,12 @@ class WC_Admin_Setup_Wizard {
 	public function setup_wizard_steps() {
 		$output_steps      = $this->steps;
 		$selected_features = array_filter( $this->wc_setup_activate_get_feature_list() );
+
+		// Hide the activate step if Jetpack is already active, unless WooCommerce Services
+		// features are selected, or unless the Activate step was already taken.
+		if ( empty( $selected_features ) && 'yes' !== get_transient( 'wc_setup_activated' ) ) {
+			unset( $output_steps['activate'] );
+		}
 
 		?>
 		<ol class="wc-setup-steps">
@@ -450,6 +492,24 @@ class WC_Admin_Setup_Wizard {
 				<?php esc_html_e( 'I will also be selling products or services in person.', 'woocommerce' ); ?>
 			</label>
 
+			<?php
+			if ( 'unknown' === get_option( 'woocommerce_allow_tracking', 'unknown' ) ) {
+				?>
+				<div class="woocommerce-tracker">
+					<p class="checkbox">
+						<input type="checkbox" id="wc_tracker_checkbox" name="wc_tracker_checkbox" value="yes" checked />
+						<label for="wc_tracker_checkbox"><?php esc_html_e( 'Help WooCommerce improve with usage tracking.', 'woocommerce' ); ?></label>
+					</p>
+					<p>
+					<?php
+					esc_html_e( 'Gathering usage data allows us to make WooCommerce better &mdash; your store will be considered as we evaluate new features, judge the quality of an update, or determine if an improvement makes sense. If you would rather opt-out, and do not check this box, we will not know this store exists and we will not collect any usage data.', 'woocommerce' );
+					echo ' <a target="_blank" href="https://woocommerce.com/usage-tracking/">' . esc_html__( 'Read more about what we collect.', 'woocommerce' ) . '</a>';
+					?>
+					</p>
+				</div>
+				<?php
+			}
+			?>
 			<p class="wc-setup-actions step">
 				<button type="submit" class="button-primary button button-large button-next" value="<?php esc_attr_e( "Let's go!", 'woocommerce' ); ?>" name="save_step"><?php esc_html_e( "Let's go!", 'woocommerce' ); ?></button>
 			</p>
@@ -473,6 +533,7 @@ class WC_Admin_Setup_Wizard {
 		$currency_code  = sanitize_text_field( $_POST['currency_code'] );
 		$product_type   = sanitize_text_field( $_POST['product_type'] );
 		$sell_in_person = isset( $_POST['sell_in_person'] ) && ( 'yes' === sanitize_text_field( $_POST['sell_in_person'] ) );
+		$tracking       = isset( $_POST['wc_tracker_checkbox'] ) && ( 'yes' === sanitize_text_field( $_POST['wc_tracker_checkbox'] ) );
 		// phpcs:enable
 
 		if ( ! $state ) {
@@ -501,6 +562,13 @@ class WC_Admin_Setup_Wizard {
 				update_option( 'woocommerce_price_num_decimals', $locale_info[ $country ]['num_decimals'] );
 				update_option( 'woocommerce_price_thousand_sep', $locale_info[ $country ]['thousand_sep'] );
 			}
+		}
+
+		if ( $tracking ) {
+			update_option( 'woocommerce_allow_tracking', 'yes' );
+			wp_schedule_single_event( time() + 10, 'woocommerce_tracker_send_event', array( true ) );
+		} else {
+			update_option( 'woocommerce_allow_tracking', 'no' );
 		}
 
 		WC_Install::create_pages();
@@ -610,15 +678,32 @@ class WC_Admin_Setup_Wizard {
 		);
 	}
 
+	/**
+	 * Helper method to install WooCommerce Services and its Jetpack dependency.
+	 */
+	protected function install_woocommerce_services() {
+		$this->install_plugin(
+			'woocommerce-services',
+			array(
+				'name'      => __( 'WooCommerce Services', 'woocommerce' ),
+				'repo-slug' => 'woocommerce-services',
+			)
+		);
+	}
 
 	/**
-	 * TODO: Check on this for removal.
 	 * Retrieve info for missing WooCommerce Services and/or Jetpack plugin.
 	 *
 	 * @return array
 	 */
 	protected function get_wcs_requisite_plugins() {
 		$plugins = array();
+		if ( ! is_plugin_active( 'woocommerce-services/woocommerce-services.php' ) && ! get_option( 'woocommerce_setup_background_installing_woocommerce-services' ) ) {
+			$plugins[] = array(
+				'name' => __( 'WooCommerce Services', 'woocommerce' ),
+				'slug' => 'woocommerce-services',
+			);
+		}
 		return $plugins;
 	}
 
@@ -789,6 +874,7 @@ class WC_Admin_Setup_Wizard {
 			);
 		}
 
+		$is_wcs_labels_supported  = $this->is_wcs_shipping_labels_supported_country( $country_code );
 		$is_shipstation_supported = $this->is_shipstation_supported_country( $country_code );
 
 		?>
@@ -835,13 +921,46 @@ class WC_Admin_Setup_Wizard {
 							</span>
 						</div>
 					</li>
+					<li class="wc-wizard-service-info">
+						<p>
+						<?php
+						printf(
+							wp_kses(
+								/* translators: %1$s: live rates tooltip text, %2$s: shipping extensions URL */
+								__( 'If you\'d like to offer <span class="help_tip" data-tip="%1$s">live rates</span> from a specific carrier (e.g. UPS) you can find a variety of extensions available for WooCommerce <a href="%2$s" target="_blank">here</a>.', 'woocommerce' ),
+								array(
+									'span' => array(
+										'class'    => array(),
+										'data-tip' => array(),
+									),
+									'a' => array(
+										'href'   => array(),
+										'target' => array(),
+									),
+								)
+							),
+							esc_attr__( 'A live rate is the exact cost to ship an order, quoted directly from the shipping carrier.', 'woocommerce' ),
+							'https://woocommerce.com/product-category/woocommerce-extensions/shipping-methods/shipping-carriers/'
+						);
+						?>
+						</p>
+					</li>
 				</ul>
 			<?php endif; ?>
 
-		<?php if ( $is_shipstation_supported ) : ?>
+		<?php if ( $is_wcs_labels_supported || $is_shipstation_supported ) : ?>
 			<ul class="wc-setup-shipping-recommended">
 			<?php
-			if ( $is_shipstation_supported ) :
+			if ( $is_wcs_labels_supported ) :
+				$this->display_recommended_item( array(
+					'type'        => 'woocommerce_services',
+					'title'       => __( 'Print shipping labels at home', 'woocommerce' ),
+					'description' => __( 'We recommend WooCommerce Services & Jetpack. These plugins will save you time at the Post Office by enabling you to print your shipping labels at home.', 'woocommerce' ),
+					'img_url'     => WC()->plugin_url() . '/assets/images/obw-woocommerce-services-icon.png',
+					'img_alt'     => __( 'WooCommerce Services icon', 'woocommerce' ),
+					'plugins'     => $this->get_wcs_requisite_plugins(),
+				) );
+			elseif ( $is_shipstation_supported ) :
 				$this->display_recommended_item( array(
 					'type'        => 'shipstation',
 					'title'       => __( 'Print shipping labels at home', 'woocommerce' ),
@@ -918,9 +1037,14 @@ class WC_Admin_Setup_Wizard {
 		update_option( 'woocommerce_weight_unit', $weight_unit );
 		update_option( 'woocommerce_dimension_unit', $dimension_unit );
 
+		$setup_wcs_labels  = isset( $_POST['setup_woocommerce_services'] ) && 'yes' === $_POST['setup_woocommerce_services'];
 		$setup_shipstation = isset( $_POST['setup_shipstation'] ) && 'yes' === $_POST['setup_shipstation'];
 
 		update_option( 'woocommerce_setup_shipping_labels', $setup_wcs_labels );
+
+		if ( $setup_wcs_labels ) {
+			$this->install_woocommerce_services();
+		}
 
 		if ( $setup_shipstation ) {
 			$this->install_plugin(
@@ -995,6 +1119,40 @@ class WC_Admin_Setup_Wizard {
 	}
 
 	/**
+	 * Is Stripe country supported
+	 * https://stripe.com/global .
+	 *
+	 * @param string $country_code Country code.
+	 */
+	protected function is_stripe_supported_country( $country_code ) {
+		$stripe_supported_countries = array(
+			'AU',
+			'AT',
+			'BE',
+			'CA',
+			'DK',
+			'FI',
+			'FR',
+			'DE',
+			'HK',
+			'IE',
+			'JP',
+			'LU',
+			'NL',
+			'NZ',
+			'NO',
+			'SG',
+			'ES',
+			'SE',
+			'CH',
+			'GB',
+			'US',
+		);
+
+		return in_array( $country_code, $stripe_supported_countries, true );
+	}
+
+	/**
 	 * Is PayPal currency supported.
 	 *
 	 * @param string $currency Currency code.
@@ -1031,6 +1189,64 @@ class WC_Admin_Setup_Wizard {
 			'INR',
 		);
 		return in_array( $currency, $supported_currencies, true );
+	}
+
+	/**
+	 * Is Klarna Checkout country supported.
+	 *
+	 * @param string $country_code Country code.
+	 */
+	protected function is_klarna_checkout_supported_country( $country_code ) {
+		$supported_countries = array(
+			'SE', // Sweden.
+			'FI', // Finland.
+			'NO', // Norway.
+			'NL', // Netherlands.
+		);
+		return in_array( $country_code, $supported_countries, true );
+	}
+
+	/**
+	 * Is Klarna Payments country supported.
+	 *
+	 * @param string $country_code Country code.
+	 */
+	protected function is_klarna_payments_supported_country( $country_code ) {
+		$supported_countries = array(
+			'DK', // Denmark.
+			'DE', // Germany.
+			'AT', // Austria.
+		);
+		return in_array( $country_code, $supported_countries, true );
+	}
+
+	/**
+	 * Is Square country supported
+	 *
+	 * @param string $country_code Country code.
+	 */
+	protected function is_square_supported_country( $country_code ) {
+		$square_supported_countries = array(
+			'US',
+			'CA',
+			'JP',
+			'GB',
+			'AU',
+		);
+		return in_array( $country_code, $square_supported_countries, true );
+	}
+
+	/**
+	 * Is eWAY Payments country supported
+	 *
+	 * @param string $country_code Country code.
+	 */
+	protected function is_eway_payments_supported_country( $country_code ) {
+		$supported_countries = array(
+			'AU', // Australia.
+			'NZ', // New Zealand.
+		);
+		return in_array( $country_code, $supported_countries, true );
 	}
 
 	/**
@@ -1079,13 +1295,58 @@ class WC_Admin_Setup_Wizard {
 	protected function get_wizard_available_in_cart_payment_gateways() {
 		$user_email = $this->get_current_user_email();
 
+		$stripe_description = '<p>' . sprintf(
+			/* translators: %s: URL */
+			__( 'Accept debit and credit cards in 135+ currencies, methods such as Alipay, and one-touch checkout with Apple Pay. <a href="%s" target="_blank">Learn more</a>.', 'woocommerce' ),
+			'https://woocommerce.com/products/stripe/'
+		) . '</p>';
 		$paypal_checkout_description = '<p>' . sprintf(
 			/* translators: %s: URL */
 			__( 'Safe and secure payments using credit cards or your customer\'s PayPal account. <a href="%s" target="_blank">Learn more</a>.', 'woocommerce' ),
 			'https://woocommerce.com/products/woocommerce-gateway-paypal-checkout/'
 		) . '</p>';
+		$klarna_checkout_description = '<p>' . sprintf(
+			/* translators: %s: URL */
+			__( 'Full checkout experience with pay now, pay later and slice it. No credit card numbers, no passwords, no worries. <a href="%s" target="_blank">Learn more about Klarna</a>.', 'woocommerce' ),
+			'https://woocommerce.com/products/klarna-checkout/'
+		) . '</p>';
+		$klarna_payments_description = '<p>' . sprintf(
+			/* translators: %s: URL */
+			__( 'Choose the payment that you want, pay now, pay later or slice it. No credit card numbers, no passwords, no worries. <a href="%s" target="_blank">Learn more about Klarna</a>.', 'woocommerce' ),
+			'https://woocommerce.com/products/klarna-payments/ '
+		) . '</p>';
+		$square_description = '<p>' . sprintf(
+			/* translators: %s: URL */
+			__( 'Securely accept credit and debit cards with one low rate, no surprise fees (custom rates available). Sell online and in store and track sales and inventory in one place. <a href="%s" target="_blank">Learn more about Square</a>.', 'woocommerce' ),
+			'https://woocommerce.com/products/square/'
+		) . '</p>';
 
 		return array(
+			'stripe'          => array(
+				'name'        => __( 'WooCommerce Stripe Gateway', 'woocommerce' ),
+				'image'       => WC()->plugin_url() . '/assets/images/stripe.png',
+				'description' => $stripe_description,
+				'class'       => 'checked stripe-logo',
+				'repo-slug'   => 'woocommerce-gateway-stripe',
+				'settings'    => array(
+					'create_account' => array(
+						'label'       => __( 'Set up Stripe for me using this email:', 'woocommerce' ),
+						'type'        => 'checkbox',
+						'value'       => 'yes',
+						'default'     => 'yes',
+						'placeholder' => '',
+						'required'    => false,
+						'plugins'     => $this->get_wcs_requisite_plugins(),
+					),
+					'email'          => array(
+						'label'       => __( 'Stripe email address:', 'woocommerce' ),
+						'type'        => 'email',
+						'value'       => $user_email,
+						'placeholder' => __( 'Stripe email address', 'woocommerce' ),
+						'required'    => true,
+					),
+				),
+			),
 			'ppec_paypal'     => array(
 				'name'        => __( 'WooCommerce PayPal Checkout Gateway', 'woocommerce' ),
 				'image'       => WC()->plugin_url() . '/assets/images/paypal.png',
@@ -1126,6 +1387,47 @@ class WC_Admin_Setup_Wizard {
 					),
 				),
 			),
+			'klarna_checkout' => array(
+				'name'        => __( 'Klarna Checkout for WooCommerce', 'woocommerce' ),
+				'description' => $klarna_checkout_description,
+				'image'       => WC()->plugin_url() . '/assets/images/klarna-white.png',
+				'enabled'     => true,
+				'class'       => 'klarna-logo',
+				'repo-slug'   => 'klarna-checkout-for-woocommerce',
+			),
+			'klarna_payments' => array(
+				'name'        => __( 'Klarna Payments for WooCommerce', 'woocommerce' ),
+				'description' => $klarna_payments_description,
+				'image'       => WC()->plugin_url() . '/assets/images/klarna-white.png',
+				'enabled'     => true,
+				'class'       => 'klarna-logo',
+				'repo-slug'   => 'klarna-payments-for-woocommerce',
+			),
+			'square'          => array(
+				'name'        => __( 'WooCommerce Square', 'woocommerce' ),
+				'description' => $square_description,
+				'image'       => WC()->plugin_url() . '/assets/images/square-white.png',
+				'class'       => 'square-logo',
+				'enabled'     => true,
+				'repo-slug'   => 'woocommerce-square',
+			),
+			'eway'            => array(
+				'name'        => __( 'WooCommerce eWAY Gateway', 'woocommerce' ),
+				'description' => __( 'The eWAY extension for WooCommerce allows you to take credit card payments directly on your store without redirecting your customers to a third party site to make payment.', 'woocommerce' ),
+				'image'       => WC()->plugin_url() . '/assets/images/eway-logo.jpg',
+				'enabled'     => false,
+				'class'       => 'eway-logo',
+				'repo-slug'   => 'woocommerce-gateway-eway',
+			),
+			'payfast'         => array(
+				'name'        => __( 'WooCommerce PayFast Gateway', 'woocommerce' ),
+				'description' => __( 'The PayFast extension for WooCommerce enables you to accept payments by Credit Card and EFT via one of South Africa’s most popular payment gateways. No setup fees or monthly subscription costs.', 'woocommerce' ),
+				'image'       => WC()->plugin_url() . '/assets/images/payfast.png',
+				'class'       => 'payfast-logo',
+				'enabled'     => false,
+				'repo-slug'   => 'woocommerce-payfast-gateway',
+				'file'        => 'gateway-payfast.php',
+			),
 		);
 	}
 
@@ -1139,6 +1441,9 @@ class WC_Admin_Setup_Wizard {
 		$country  = WC()->countries->get_base_country();
 		$currency = get_woocommerce_currency();
 
+		$can_stripe  = $this->is_stripe_supported_country( $country );
+		$can_eway    = $this->is_eway_payments_supported_country( $country );
+		$can_payfast = ( 'ZA' === $country ); // South Africa.
 		$can_paypal  = $this->is_paypal_supported_currency( $currency );
 
 		if ( ! current_user_can( 'install_plugins' ) ) {
@@ -1146,6 +1451,14 @@ class WC_Admin_Setup_Wizard {
 		}
 
 		$spotlight = '';
+
+		if ( $this->is_klarna_checkout_supported_country( $country ) ) {
+			$spotlight = 'klarna_checkout';
+		} elseif ( $this->is_klarna_payments_supported_country( $country ) ) {
+			$spotlight = 'klarna_payments';
+		} elseif ( $this->is_square_supported_country( $country ) && get_option( 'woocommerce_sell_in_person' ) ) {
+			$spotlight = 'square';
+		}
 
 		if ( $spotlight ) {
 			$offered_gateways = array(
@@ -1156,13 +1469,39 @@ class WC_Admin_Setup_Wizard {
 				$offered_gateways += array( 'ppec_paypal' => $gateways['ppec_paypal'] );
 			}
 
+			if ( $can_stripe ) {
+				$offered_gateways += array( 'stripe' => $gateways['stripe'] );
+			}
+
+			if ( $can_eway ) {
+				$offered_gateways += array( 'eway' => $gateways['eway'] );
+			}
+
+			if ( $can_payfast ) {
+				$offered_gateways += array( 'payfast' => $gateways['payfast'] );
+			}
+
 			return $offered_gateways;
 		}
 
 		$offered_gateways = array();
 
+		if ( $can_stripe ) {
+			$gateways['stripe']['enabled']  = true;
+			$gateways['stripe']['featured'] = true;
+			$offered_gateways              += array( 'stripe' => $gateways['stripe'] );
+		}
+
 		if ( $can_paypal ) {
 			$offered_gateways += array( 'ppec_paypal' => $gateways['ppec_paypal'] );
+		}
+
+		if ( $can_eway ) {
+			$offered_gateways += array( 'eway' => $gateways['eway'] );
+		}
+
+		if ( $can_payfast ) {
+			$offered_gateways += array( 'payfast' => $gateways['payfast'] );
 		}
 
 		return $offered_gateways;
@@ -1335,7 +1674,19 @@ class WC_Admin_Setup_Wizard {
 		<form method="post" class="wc-wizard-payment-gateway-form">
 			<p>
 				<?php
-				echo esc_html_e( 'WooCommerce can accept both online and offline payments. Additional payment methods can be installed later.', 'woocommerce' );
+				printf(
+					wp_kses(
+						/* translators: %s: Link */
+						__( 'WooCommerce can accept both online and offline payments. <a href="%s" target="_blank">Additional payment methods</a> can be installed later.', 'woocommerce' ),
+						array(
+							'a' => array(
+								'href'   => array(),
+								'target' => array(),
+							),
+						)
+					),
+					esc_url( admin_url( 'admin.php?page=wc-addons&section=payment-gateways' ) )
+				);
 				?>
 			</p>
 			<?php if ( $featured_gateways ) : ?>
@@ -1389,6 +1740,20 @@ class WC_Admin_Setup_Wizard {
 	 */
 	public function wc_setup_payment_save() {
 		check_admin_referer( 'wc-setup' );
+
+		if (
+			(
+				// Install WooCommerce Services with Stripe to enable deferred account creation.
+				! empty( $_POST['wc-wizard-service-stripe-enabled'] ) && // WPCS: CSRF ok, input var ok.
+				! empty( $_POST['stripe_create_account'] ) // WPCS: CSRF ok, input var ok.
+			) || (
+				// Install WooCommerce Services with PayPal EC to enable proxied payments.
+				! empty( $_POST['wc-wizard-service-ppec_paypal-enabled'] ) && // WPCS: CSRF ok, input var ok.
+				! empty( $_POST['ppec_paypal_reroute_requests'] ) // WPCS: CSRF ok, input var ok.
+			)
+		) {
+			$this->install_woocommerce_services();
+		}
 
 		$gateways = array_merge( $this->get_wizard_in_cart_payment_gateways(), $this->get_wizard_manual_payment_gateways() );
 
@@ -1470,8 +1835,12 @@ class WC_Admin_Setup_Wizard {
 			// If we're displaying all of the recommended features, show the full description. Otherwise, display a placeholder.
 			// We're not translating all of the different permutations to save on translations,
 			// and the default is the most common.
-			if ( $this->should_show_mailchimp() ) :
-				esc_html_e( 'Select from the list below to enable MailChimp’s best-in-class email services.', 'woocommerce' );
+			if (
+					$this->should_show_theme()
+					&& $this->should_show_automated_tax()
+					&& $this->should_show_mailchimp()
+					) :
+				esc_html_e( 'Select from the list below to enable automated taxes and MailChimp’s best-in-class email services — and design your store with our official, free WooCommerce theme.', 'woocommerce' );
 			else :
 				esc_html_e( 'Enhance your store with these recommended features.', 'woocommerce' );
 			endif;
@@ -1479,6 +1848,32 @@ class WC_Admin_Setup_Wizard {
 		<form method="post">
 			<ul class="recommended-step">
 				<?php
+				if ( $this->should_show_theme() ) :
+					$theme      = wp_get_theme();
+					$theme_name = $theme['Name'];
+					$this->display_recommended_item( array(
+						'type'        => 'storefront_theme',
+						'title'       => __( 'Storefront Theme', 'woocommerce' ),
+						'description' => sprintf( __(
+								'Design your store with deep WooCommerce integration. If toggled on, we’ll install <a href="https://woocommerce.com/storefront/" target="_blank" rel="noopener noreferrer">Storefront</a>, and your current theme <em>%s</em> will be deactivated.', 'woocommerce' ),
+								$theme_name
+						),
+						'img_url'     => WC()->plugin_url() . '/assets/images/obw-storefront-icon.svg',
+						'img_alt'     => __( 'Storefront icon', 'woocommerce' ),
+					) );
+				endif;
+
+				if ( $this->should_show_automated_tax() ) :
+					$this->display_recommended_item( array(
+						'type'        => 'automated_taxes',
+						'title'       => __( 'Automated Taxes', 'woocommerce' ),
+						'description' => __( 'Save time and errors with automated tax calculation and collection at checkout. Powered by WooCommerce Services and Jetpack.', 'woocommerce' ),
+						'img_url'     => WC()->plugin_url() . '/assets/images/obw-taxes-icon.svg',
+						'img_alt'     => __( 'automated taxes icon', 'woocommerce' ),
+						'plugins'     => $this->get_wcs_requisite_plugins(),
+					) );
+				endif;
+
 				if ( $this->should_show_mailchimp() ) :
 					$this->display_recommended_item( array(
 						'type'        => 'mailchimp',
@@ -1506,7 +1901,20 @@ class WC_Admin_Setup_Wizard {
 	public function wc_setup_recommended_save() {
 		check_admin_referer( 'wc-setup' );
 
+		$setup_storefront       = isset( $_POST['setup_storefront_theme'] ) && 'yes' === $_POST['setup_storefront_theme'];
+		$setup_automated_tax    = isset( $_POST['setup_automated_taxes'] ) && 'yes' === $_POST['setup_automated_taxes'];
 		$setup_mailchimp        = isset( $_POST['setup_mailchimp'] ) && 'yes' === $_POST['setup_mailchimp'];
+
+		update_option( 'woocommerce_calc_taxes', $setup_automated_tax ? 'yes' : 'no' );
+		update_option( 'woocommerce_setup_automated_taxes', $setup_automated_tax );
+
+		if ( $setup_storefront ) {
+			$this->install_theme( 'storefront' );
+		}
+
+		if ( $setup_automated_tax ) {
+			$this->install_woocommerce_services();
+		}
 
 		if ( $setup_mailchimp ) {
 			// Prevent MailChimp from redirecting to its settings page during the OBW flow.
@@ -1528,23 +1936,63 @@ class WC_Admin_Setup_Wizard {
 
 	protected function wc_setup_activate_get_feature_list() {
 		$features = array();
+
+		$stripe_settings = get_option( 'woocommerce_stripe_settings', false );
+		$stripe_enabled  = is_array( $stripe_settings )
+			&& isset( $stripe_settings['create_account'] ) && 'yes' === $stripe_settings['create_account']
+			&& isset( $stripe_settings['enabled'] ) && 'yes' === $stripe_settings['enabled'];
+		$ppec_settings   = get_option( 'woocommerce_ppec_paypal_settings', false );
+		$ppec_enabled    = is_array( $ppec_settings )
+			&& isset( $ppec_settings['reroute_requests'] ) && 'yes' === $ppec_settings['reroute_requests']
+			&& isset( $ppec_settings['enabled'] ) && 'yes' === $ppec_settings['enabled'];
+
+		$features['payment'] = $stripe_enabled || $ppec_enabled;
+		$features['taxes']   = (bool) get_option( 'woocommerce_setup_automated_taxes', false );
+		$features['labels']  = (bool) get_option( 'woocommerce_setup_shipping_labels', false );
+
 		return $features;
 	}
 
 	protected function wc_setup_activate_get_feature_list_str() {
 		$features = $this->wc_setup_activate_get_feature_list();
-		if ( $features['payment'] && $features['labels'] ) {
+		if ( $features['payment'] && $features['taxes'] && $features['labels'] ) {
+			return __( 'payment setup, automated taxes and discounted shipping labels', 'woocommerce' );
+		} else if ( $features['payment'] && $features['taxes'] ) {
+			return __( 'payment setup and automated taxes', 'woocommerce' );
+		} else if ( $features['payment'] && $features['labels'] ) {
 			return __( 'payment setup and discounted shipping labels', 'woocommerce' );
 		} else if ( $features['payment'] ) {
 			return __( 'payment setup', 'woocommerce' );
+		} else if ( $features['taxes'] && $features['labels'] ) {
+			return __( 'automated taxes and discounted shipping labels', 'woocommerce' );
+		} else if ( $features['taxes'] ) {
+			return __( 'automated taxes', 'woocommerce' );
 		} else if ( $features['labels'] ) {
 			return __( 'discounted shipping labels', 'woocommerce' );
 		}
 		return false;
 	}
 
+	/**
+	 * Activate step.
+	 */
+	public function wc_setup_activate() {
+
+		$feature_list = $this->wc_setup_activate_get_feature_list_str();
+		if ( $feature_list ) {
+			$title = __( 'Connect your store to activate WooCommerce Services', 'woocommerce' );
+			$button_text = __( 'Continue with WooCommerce Services', 'woocommerce' );
+		} else {
+			wp_redirect( esc_url_raw( $this->get_next_step_link() ) );
+			exit;
+		}
+		?>
+		<h1><?php echo esc_html( $title ); ?></h1>
+		<p><?php echo esc_html( $description ); ?></p>
+	<?php
+	}
+
 	protected function get_activate_error_message( $code = '' ) {
-		$errors = [];
 		return array_key_exists( $code, $errors ) ? $errors[ $code ] : $errors['default'];
 	}
 
@@ -1566,6 +2014,31 @@ class WC_Admin_Setup_Wizard {
 		);
 		?>
 		<h1><?php esc_html_e( "You're ready to start selling!", 'woocommerce' ); ?></h1>
+
+		<div class="woocommerce-message woocommerce-newsletter">
+			<p><?php esc_html_e( "We're here for you — get tips, product updates, and inspiration straight to your mailbox.", 'woocommerce' ); ?></p>
+			<form action="//woocommerce.us8.list-manage.com/subscribe/post?u=2c1434dc56f9506bf3c3ecd21&amp;id=13860df971&amp;SIGNUPPAGE=plugin" method="post" target="_blank" novalidate>
+				<div class="newsletter-form-container">
+					<input
+						class="newsletter-form-email"
+						type="email"
+						value="<?php echo esc_attr( $user_email ); ?>"
+						name="EMAIL"
+						placeholder="<?php esc_attr_e( 'Email address', 'woocommerce' ); ?>"
+						required
+					>
+					<p class="wc-setup-actions step newsletter-form-button-container">
+						<button
+							type="submit"
+							value="<?php esc_html_e( 'Yes please!', 'woocommerce' ); ?>"
+							name="subscribe"
+							id="mc-embedded-subscribe"
+							class="button-primary button newsletter-form-button"
+						><?php esc_html_e( 'Yes please!', 'woocommerce' ); ?></button>
+					</p>
+				</div>
+			</form>
+		</div>
 
 		<ul class="wc-wizard-next-steps">
 			<li class="wc-wizard-next-step-item">
