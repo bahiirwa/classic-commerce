@@ -399,10 +399,6 @@ class WC_Admin_Addons {
 			return;
 		}
 
-		if ( isset( $_GET['install-addon'] ) && 'woocommerce-services' === $_GET['install-addon'] ) {
-			self::install_woocommerce_services_addon();
-		}
-
 		$sections        = self::get_sections();
 		$theme           = wp_get_theme();
 		$current_section = isset( $_GET['section'] ) ? sanitize_text_field( $_GET['section'] ) : '_featured';
@@ -424,24 +420,6 @@ class WC_Admin_Addons {
 		 * @uses $current_section
 		 */
 		include_once dirname( __FILE__ ) . '/views/html-admin-page-addons.php';
-	}
-
-	/**
-	 * Install WooCommerce Services from Extensions screens.
-	 */
-	public static function install_woocommerce_services_addon() {
-		check_admin_referer( 'install-addon_woocommerce-services' );
-
-		$services_plugin_id = 'woocommerce-services';
-		$services_plugin    = array(
-			'name'      => __( 'WooCommerce Services', 'woocommerce' ),
-			'repo-slug' => 'woocommerce-services',
-		);
-
-		WC_Install::background_installer( $services_plugin_id, $services_plugin );
-
-		wp_safe_redirect( remove_query_arg( array( 'install-addon', '_wpnonce' ) ) );
-		exit;
 	}
 
 	/**

@@ -658,19 +658,6 @@ class WC_Admin_Setup_Wizard {
 	}
 
 	/**
-	 * Helper method to install WooCommerce Services and its Jetpack dependency.
-	 */
-	protected function install_woocommerce_services() {
-		$this->install_plugin(
-			'woocommerce-services',
-			array(
-				'name'      => __( 'WooCommerce Services', 'woocommerce' ),
-				'repo-slug' => 'woocommerce-services',
-			)
-		);
-	}
-
-	/**
 	 * Retrieve info for missing WooCommerce Services and/or Jetpack plugin.
 	 *
 	 * @return array
@@ -1627,7 +1614,6 @@ class WC_Admin_Setup_Wizard {
 				! empty( $_POST['ppec_paypal_reroute_requests'] ) // WPCS: CSRF ok, input var ok.
 			)
 		) {
-			$this->install_woocommerce_services();
 		}
 
 		$gateways = array_merge( $this->get_wizard_in_cart_payment_gateways(), $this->get_wizard_manual_payment_gateways() );
