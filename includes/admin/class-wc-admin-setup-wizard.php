@@ -873,8 +873,6 @@ class WC_Admin_Setup_Wizard {
 			);
 		}
 
-		$is_shipstation_supported = $this->is_shipstation_supported_country( $country_code );
-
 		?>
 		<h1><?php esc_html_e( 'Shipping', 'woocommerce' ); ?></h1>
 		<?php if ( $intro_text ) : ?>
@@ -919,54 +917,8 @@ class WC_Admin_Setup_Wizard {
 							</span>
 						</div>
 					</li>
-					<li class="wc-wizard-service-info">
-						<p>
-						<?php
-						printf(
-							wp_kses(
-								/* translators: %1$s: live rates tooltip text, %2$s: shipping extensions URL */
-								__( 'If you\'d like to offer <span class="help_tip" data-tip="%1$s">live rates</span> from a specific carrier (e.g. UPS) you can find a variety of extensions available for WooCommerce <a href="%2$s" target="_blank">here</a>.', 'woocommerce' ),
-								array(
-									'span' => array(
-										'class'    => array(),
-										'data-tip' => array(),
-									),
-									'a' => array(
-										'href'   => array(),
-										'target' => array(),
-									),
-								)
-							),
-							esc_attr__( 'A live rate is the exact cost to ship an order, quoted directly from the shipping carrier.', 'woocommerce' ),
-							'https://woocommerce.com/product-category/woocommerce-extensions/shipping-methods/shipping-carriers/'
-						);
-						?>
-						</p>
-					</li>
 				</ul>
 			<?php endif; ?>
-
-		<?php if ( $is_shipstation_supported ) : ?>
-			<ul class="wc-setup-shipping-recommended">
-			<?php
-			elseif ( $is_shipstation_supported ) :
-				$this->display_recommended_item( array(
-					'type'        => 'shipstation',
-					'title'       => __( 'Print shipping labels at home', 'woocommerce' ),
-					'description' => __( 'We recommend using ShipStation to save time at the Post Office by printing your shipping labels at home. Try ShipStation free for 30 days.', 'woocommerce' ),
-					'img_url'     => WC()->plugin_url() . '/assets/images/obw-shipstation-icon.png',
-					'img_alt'     => __( 'ShipStation icon', 'woocommerce' ),
-					'plugins'     => array(
-						array(
-							'name' => __( 'ShipStation', 'woocommerce' ),
-							'slug' => 'woocommerce-shipstation-integration',
-						),
-					),
-				) );
-			endif;
-		endif;
-		?>
-			</ul>
 
 			<div class="wc-setup-shipping-units">
 				<p>
@@ -1025,19 +977,6 @@ class WC_Admin_Setup_Wizard {
 		update_option( 'woocommerce_ship_to_countries', '' );
 		update_option( 'woocommerce_weight_unit', $weight_unit );
 		update_option( 'woocommerce_dimension_unit', $dimension_unit );
-
-		$setup_shipstation = isset( $_POST['setup_shipstation'] ) && 'yes' === $_POST['setup_shipstation'];
-
-		if ( $setup_shipstation ) {
-			$this->install_plugin(
-				'woocommerce-shipstation-integration',
-				array(
-					'name'      => __( 'ShipStation', 'woocommerce' ),
-					'repo-slug' => 'woocommerce-shipstation-integration',
-					'file'      => 'woocommerce-shipstation.php',
-				)
-			);
-		}
 
 		// For now, limit this setup to the first run.
 		if ( ! empty( $existing_zones ) ) {
@@ -1227,20 +1166,6 @@ class WC_Admin_Setup_Wizard {
 		$supported_countries = array(
 			'AU', // Australia.
 			'NZ', // New Zealand.
-		);
-		return in_array( $country_code, $supported_countries, true );
-	}
-
-	/**
-	 * Is ShipStation country supported
-	 *
-	 * @param string $country_code Country code.
-	 */
-	protected function is_shipstation_supported_country( $country_code ) {
-		$supported_countries = array(
-			'AU', // Australia.
-			'CA', // Canada.
-			'GB', // United Kingdom.
 		);
 		return in_array( $country_code, $supported_countries, true );
 	}
