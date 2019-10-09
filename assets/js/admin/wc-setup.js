@@ -119,7 +119,7 @@ jQuery( function( $ ) {
 			.prop( 'required', checked );
 	} );
 
-	$( '.wc-wizard-services' ).on( 'change', 'input#stripe_create_account, input#ppec_paypal_reroute_requests', function() {
+	$( '.wc-wizard-services' ).on( 'change', 'input#stripe_create_account', function() {
 		if ( $( this ).is( ':checked' ) ) {
 			$( this ).closest( '.wc-wizard-service-settings' )
 				.find( 'input.payment-email-input' )
@@ -133,7 +133,7 @@ jQuery( function( $ ) {
 				.prop( 'disabled', true )
 				.prop( 'required', false );
 		}
-	} ).find( 'input#stripe_create_account, input#ppec_paypal_reroute_requests' ).change();
+	} ).find( 'input#stripe_create_account' ).change();
 
 	function addPlugins( bySlug, $el, hover ) {
 		var plugins = $el.data( 'plugins' );

@@ -168,8 +168,7 @@ class WC_Admin_Setup_Wizard {
 					'extra_plugins' => array(
 						'payment' => array(
 							'stripe_create_account'                              => __( 'Stripe setup is powered by Jetpack and WooCommerce Services.', 'woocommerce' ),
-							'ppec_paypal_reroute_requests'                       => __( 'PayPal setup is powered by Jetpack and WooCommerce Services.', 'woocommerce' ),
-							'stripe_create_account,ppec_paypal_reroute_requests' => __( 'Stripe and PayPal setup are powered by Jetpack and WooCommerce Services.', 'woocommerce' ),
+							'stripe_create_account' => __( 'Stripe setup is powered by Jetpack and WooCommerce Services.', 'woocommerce' ),
 						),
 					),
 				),
@@ -1209,32 +1208,6 @@ class WC_Admin_Setup_Wizard {
 					),
 				),
 			),
-			'ppec_paypal'     => array(
-				'name'        => __( 'WooCommerce PayPal Checkout Gateway', 'woocommerce' ),
-				'image'       => WC()->plugin_url() . '/assets/images/paypal.png',
-				'description' => $paypal_checkout_description,
-				'enabled'     => true,
-				'class'       => 'checked paypal-logo',
-				'repo-slug'   => 'woocommerce-gateway-paypal-express-checkout',
-				'settings'    => array(
-					'reroute_requests' => array(
-						'label'       => __( 'Set up PayPal for me using this email:', 'woocommerce' ),
-						'type'        => 'checkbox',
-						'value'       => 'yes',
-						'default'     => 'yes',
-						'placeholder' => '',
-						'required'    => false,
-						'plugins'     => $this->get_wcs_requisite_plugins(),
-					),
-					'email'            => array(
-						'label'       => __( 'Direct payments to email address:', 'woocommerce' ),
-						'type'        => 'email',
-						'value'       => $user_email,
-						'placeholder' => __( 'Email address to receive payments', 'woocommerce' ),
-						'required'    => true,
-					),
-				),
-			),
 			'paypal'          => array(
 				'name'        => __( 'PayPal Standard', 'woocommerce' ),
 				'description' => __( 'Accept payments via PayPal using account balance or credit card.', 'woocommerce' ),
@@ -1327,10 +1300,6 @@ class WC_Admin_Setup_Wizard {
 				$spotlight => $gateways[ $spotlight ],
 			);
 
-			if ( $can_paypal ) {
-				$offered_gateways += array( 'ppec_paypal' => $gateways['ppec_paypal'] );
-			}
-
 			if ( $can_stripe ) {
 				$offered_gateways += array( 'stripe' => $gateways['stripe'] );
 			}
@@ -1352,10 +1321,6 @@ class WC_Admin_Setup_Wizard {
 			$gateways['stripe']['enabled']  = true;
 			$gateways['stripe']['featured'] = true;
 			$offered_gateways              += array( 'stripe' => $gateways['stripe'] );
-		}
-
-		if ( $can_paypal ) {
-			$offered_gateways += array( 'ppec_paypal' => $gateways['ppec_paypal'] );
 		}
 
 		if ( $can_eway ) {
@@ -1608,10 +1573,6 @@ class WC_Admin_Setup_Wizard {
 				// Install WooCommerce Services with Stripe to enable deferred account creation.
 				! empty( $_POST['wc-wizard-service-stripe-enabled'] ) && // WPCS: CSRF ok, input var ok.
 				! empty( $_POST['stripe_create_account'] ) // WPCS: CSRF ok, input var ok.
-			) || (
-				// Install WooCommerce Services with PayPal EC to enable proxied payments.
-				! empty( $_POST['wc-wizard-service-ppec_paypal-enabled'] ) && // WPCS: CSRF ok, input var ok.
-				! empty( $_POST['ppec_paypal_reroute_requests'] ) // WPCS: CSRF ok, input var ok.
 			)
 		) {
 		}
@@ -1635,10 +1596,6 @@ class WC_Admin_Setup_Wizard {
 				}
 			}
 			// @codingStandardsIgnoreSEnd
-
-			if ( 'ppec_paypal' === $gateway_id && empty( $settings['reroute_requests'] ) ) {
-				unset( $settings['enabled'] );
-			}
 
 			$settings_key = 'woocommerce_' . $gateway_id . '_settings';
 			$previously_saved_settings = array_filter( (array) get_option( $settings_key, array() ) );
@@ -1781,12 +1738,8 @@ class WC_Admin_Setup_Wizard {
 		$stripe_enabled  = is_array( $stripe_settings )
 			&& isset( $stripe_settings['create_account'] ) && 'yes' === $stripe_settings['create_account']
 			&& isset( $stripe_settings['enabled'] ) && 'yes' === $stripe_settings['enabled'];
-		$ppec_settings   = get_option( 'woocommerce_ppec_paypal_settings', false );
-		$ppec_enabled    = is_array( $ppec_settings )
-			&& isset( $ppec_settings['reroute_requests'] ) && 'yes' === $ppec_settings['reroute_requests']
-			&& isset( $ppec_settings['enabled'] ) && 'yes' === $ppec_settings['enabled'];
 
-		$features['payment'] = $stripe_enabled || $ppec_enabled;
+		$features['payment'] = $stripe_enabled;
 
 		return $features;
 	}
