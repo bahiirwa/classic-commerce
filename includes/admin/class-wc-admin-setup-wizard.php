@@ -97,16 +97,6 @@ class WC_Admin_Setup_Wizard {
 	}
 
 	/**
-	 * Should we display the 'Recommended' step?
-	 * True if at least one of the recommendations will be displayed.
-	 *
-	 * @return boolean
-	 */
-	protected function should_show_recommended_step() {
-		return $this->should_show_mailchimp();
-	}
-
-	/**
 	 * Register/enqueue scripts and styles for the Setup Wizard.
 	 *
 	 * Hooked onto 'admin_enqueue_scripts'.
@@ -178,22 +168,12 @@ class WC_Admin_Setup_Wizard {
 				'view'    => array( $this, 'wc_setup_shipping' ),
 				'handler' => array( $this, 'wc_setup_shipping_save' ),
 			),
-			'recommended' => array(
-				'name'    => __( 'Recommended', 'woocommerce' ),
-				'view'    => array( $this, 'wc_setup_recommended' ),
-				'handler' => array( $this, 'wc_setup_recommended_save' ),
-			),
 			'next_steps'  => array(
 				'name'    => __( 'Ready!', 'woocommerce' ),
 				'view'    => array( $this, 'wc_setup_ready' ),
 				'handler' => '',
 			),
 		);
-
-		// Hide recommended step if nothing is going to be shown there.
-		if ( ! $this->should_show_recommended_step() ) {
-			unset( $default_steps['recommended'] );
-		}
 
 		// Hide shipping step if the store is selling digital products only.
 		if ( 'virtual' === get_option( 'woocommerce_product_type' ) ) {
@@ -1311,109 +1291,6 @@ class WC_Admin_Setup_Wizard {
 			$settings_key = 'woocommerce_' . $gateway_id . '_settings';
 			$previously_saved_settings = array_filter( (array) get_option( $settings_key, array() ) );
 			update_option( $settings_key, array_merge( $previously_saved_settings, $settings ) );
-		}
-
-		wp_redirect( esc_url_raw( $this->get_next_step_link() ) );
-		exit;
-	}
-
-	protected function display_recommended_item( $item_info ) {
-		$type        = $item_info['type'];
-		$title       = $item_info['title'];
-		$description = $item_info['description'];
-		$img_url     = $item_info['img_url'];
-		$img_alt     = $item_info['img_alt'];
-		?>
-		<li class="recommended-item checkbox">
-			<input
-				id="<?php echo esc_attr( 'wc_recommended_' . $type ); ?>"
-				type="checkbox"
-				name="<?php echo esc_attr( 'setup_' . $type ); ?>"
-				value="yes"
-				checked
-				data-plugins="<?php echo esc_attr( wp_json_encode( isset( $item_info['plugins'] ) ? $item_info['plugins'] : null ) ); ?>"
-			/>
-			<label for="<?php echo esc_attr( 'wc_recommended_' . $type ); ?>">
-				<img
-					src="<?php echo esc_url( $img_url ); ?>"
-					class="<?php echo esc_attr( 'recommended-item-icon-' . $type ); ?> recommended-item-icon"
-					alt="<?php echo esc_attr( $img_alt ); ?>" />
-				<div class="recommended-item-description-container">
-					<h3><?php echo esc_html( $title ); ?></h3>
-					<p><?php echo wp_kses( $description, array(
-						'a' => array(
-							'href'   => array(),
-							'target' => array(),
-							'rel'    => array(),
-						),
-						'em' => array(),
-					) ); ?></p>
-				</div>
-			</label>
-		</li>
-		<?php
-	}
-
-	/**
-	 * Recommended step
-	 */
-	public function wc_setup_recommended() {
-		?>
-		<h1><?php esc_html_e( 'Recommended for All WooCommerce Stores', 'woocommerce' ); ?></h1>
-		<p><?php
-			// If we're displaying all of the recommended features, show the full description. Otherwise, display a placeholder.
-			// We're not translating all of the different permutations to save on translations,
-			// and the default is the most common.
-			if ( $this->should_show_mailchimp() ) :
-				esc_html_e( 'Select from the list below to enable MailChimp’s best-in-class email services.', 'woocommerce' );
-			else :
-				esc_html_e( 'Enhance your store with these recommended features.', 'woocommerce' );
-			endif;
-		?></p>
-		<form method="post">
-			<ul class="recommended-step">
-				<?php
-				if ( $this->should_show_mailchimp() ) :
-					$this->display_recommended_item( array(
-						'type'        => 'mailchimp',
-						'title'       => __( 'MailChimp', 'woocommerce' ),
-						'description' => __( 'Join the 16 million customers who use MailChimp. Sync list and store data to send automated emails, and targeted campaigns.', 'woocommerce' ),
-						'img_url'     => WC()->plugin_url() . '/assets/images/obw-mailchimp-icon.svg',
-						'img_alt'     => __( 'MailChimp icon', 'woocommerce' ),
-						'plugins'     => array( array( 'name' => __( 'MailChimp for WooCommerce', 'woocommerce' ), 'slug' => 'mailchimp-for-woocommerce' ) ),
-					) );
-				endif;
-			?>
-		</ul>
-			<p class="wc-setup-actions step">
-				<?php $this->plugin_install_info(); ?>
-				<button type="submit" class="button-primary button button-large button-next" value="<?php esc_attr_e( 'Continue', 'woocommerce' ); ?>" name="save_step"><?php esc_html_e( 'Continue', 'woocommerce' ); ?></button>
-				<?php wp_nonce_field( 'wc-setup' ); ?>
-			</p>
-		</form>
-		<?php
-	}
-
-	/**
-	 * Recommended step save.
-	 */
-	public function wc_setup_recommended_save() {
-		check_admin_referer( 'wc-setup' );
-		$setup_mailchimp        = isset( $_POST['setup_mailchimp'] ) && 'yes' === $_POST['setup_mailchimp'];
-
-
-		if ( $setup_mailchimp ) {
-			// Prevent MailChimp from redirecting to its settings page during the OBW flow.
-			add_option( 'mailchimp_woocommerce_plugin_do_activation_redirect', false );
-
-			$this->install_plugin(
-				'mailchimp-for-woocommerce',
-				array(
-					'name'      => __( 'MailChimp for WooCommerce', 'woocommerce' ),
-					'repo-slug' => 'mailchimp-for-woocommerce',
-					'file'      => 'mailchimp-woocommerce.php',
-				)
-			);
 		}
 
 		wp_redirect( esc_url_raw( $this->get_next_step_link() ) );
