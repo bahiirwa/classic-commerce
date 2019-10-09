@@ -1188,47 +1188,6 @@ p.next-steps-help-text {
 	}
 }
 
-.wc-wizard-service-setting-stripe_create_account {
-	display: flex;
-	align-items: flex-start;
-
-	.payment-checkbox-input {
-		order: 1;
-		margin-top: 5px;
-		margin-left: 0;
-		margin-right: 0;
-		width: 1.5em;
-	}
-
-	.stripe_create_account {
-		order: 2;
-		margin-left: 0.3em;
-	}
-}
-
-.wc-wizard-service-setting-stripe_email {
-	margin-top: 0.75em;
-	margin-left: 1.5em;
-
-	label.stripe_email {
-		position: absolute;
-		margin: -1px;
-		padding: 0;
-		height: 1px;
-		width: 1px;
-		overflow: hidden;
-		clip: rect(0 0 0 0);
-		border: 0;
-	}
-
-	input.payment-email-input {
-		box-sizing: border-box;
-		margin-bottom: .5em;
-		width: 100%;
-		height: 32px;
-	}
-}
-
 .wc-setup-content .recommended-step {
 	border: 1px solid #ebebeb;
 	border-radius: 4px;

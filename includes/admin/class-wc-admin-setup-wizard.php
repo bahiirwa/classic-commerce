@@ -166,10 +166,7 @@ class WC_Admin_Setup_Wizard {
 				'current_step'            => isset( $this->steps[ $this->step ] ) ? $this->step : false,
 				'i18n'                    => array(
 					'extra_plugins' => array(
-						'payment' => array(
-							'stripe_create_account'                              => __( 'Stripe setup is powered by Jetpack and WooCommerce Services.', 'woocommerce' ),
-							'stripe_create_account' => __( 'Stripe setup is powered by Jetpack and WooCommerce Services.', 'woocommerce' ),
-						),
+						'payment' => array(),
 					),
 				),
 			)
@@ -1006,40 +1003,6 @@ class WC_Admin_Setup_Wizard {
 	}
 
 	/**
-	 * Is Stripe country supported
-	 * https://stripe.com/global .
-	 *
-	 * @param string $country_code Country code.
-	 */
-	protected function is_stripe_supported_country( $country_code ) {
-		$stripe_supported_countries = array(
-			'AU',
-			'AT',
-			'BE',
-			'CA',
-			'DK',
-			'FI',
-			'FR',
-			'DE',
-			'HK',
-			'IE',
-			'JP',
-			'LU',
-			'NL',
-			'NZ',
-			'NO',
-			'SG',
-			'ES',
-			'SE',
-			'CH',
-			'GB',
-			'US',
-		);
-
-		return in_array( $country_code, $stripe_supported_countries, true );
-	}
-
-	/**
 	 * Is PayPal currency supported.
 	 *
 	 * @param string $currency Currency code.
@@ -1156,11 +1119,6 @@ class WC_Admin_Setup_Wizard {
 	protected function get_wizard_available_in_cart_payment_gateways() {
 		$user_email = $this->get_current_user_email();
 
-		$stripe_description = '<p>' . sprintf(
-			/* translators: %s: URL */
-			__( 'Accept debit and credit cards in 135+ currencies, methods such as Alipay, and one-touch checkout with Apple Pay. <a href="%s" target="_blank">Learn more</a>.', 'woocommerce' ),
-			'https://woocommerce.com/products/stripe/'
-		) . '</p>';
 		$paypal_checkout_description = '<p>' . sprintf(
 			/* translators: %s: URL */
 			__( 'Safe and secure payments using credit cards or your customer\'s PayPal account. <a href="%s" target="_blank">Learn more</a>.', 'woocommerce' ),
@@ -1183,31 +1141,6 @@ class WC_Admin_Setup_Wizard {
 		) . '</p>';
 
 		return array(
-			'stripe'          => array(
-				'name'        => __( 'WooCommerce Stripe Gateway', 'woocommerce' ),
-				'image'       => WC()->plugin_url() . '/assets/images/stripe.png',
-				'description' => $stripe_description,
-				'class'       => 'checked stripe-logo',
-				'repo-slug'   => 'woocommerce-gateway-stripe',
-				'settings'    => array(
-					'create_account' => array(
-						'label'       => __( 'Set up Stripe for me using this email:', 'woocommerce' ),
-						'type'        => 'checkbox',
-						'value'       => 'yes',
-						'default'     => 'yes',
-						'placeholder' => '',
-						'required'    => false,
-						'plugins'     => $this->get_wcs_requisite_plugins(),
-					),
-					'email'          => array(
-						'label'       => __( 'Stripe email address:', 'woocommerce' ),
-						'type'        => 'email',
-						'value'       => $user_email,
-						'placeholder' => __( 'Stripe email address', 'woocommerce' ),
-						'required'    => true,
-					),
-				),
-			),
 			'paypal'          => array(
 				'name'        => __( 'PayPal Standard', 'woocommerce' ),
 				'description' => __( 'Accept payments via PayPal using account balance or credit card.', 'woocommerce' ),
@@ -1276,7 +1209,6 @@ class WC_Admin_Setup_Wizard {
 		$country  = WC()->countries->get_base_country();
 		$currency = get_woocommerce_currency();
 
-		$can_stripe  = $this->is_stripe_supported_country( $country );
 		$can_eway    = $this->is_eway_payments_supported_country( $country );
 		$can_payfast = ( 'ZA' === $country ); // South Africa.
 		$can_paypal  = $this->is_paypal_supported_currency( $currency );
@@ -1568,15 +1500,6 @@ class WC_Admin_Setup_Wizard {
 	public function wc_setup_payment_save() {
 		check_admin_referer( 'wc-setup' );
 
-		if (
-			(
-				// Install WooCommerce Services with Stripe to enable deferred account creation.
-				! empty( $_POST['wc-wizard-service-stripe-enabled'] ) && // WPCS: CSRF ok, input var ok.
-				! empty( $_POST['stripe_create_account'] ) // WPCS: CSRF ok, input var ok.
-			)
-		) {
-		}
-
 		$gateways = array_merge( $this->get_wizard_in_cart_payment_gateways(), $this->get_wizard_manual_payment_gateways() );
 
 		foreach ( $gateways as $gateway_id => $gateway ) {
@@ -1733,13 +1656,6 @@ class WC_Admin_Setup_Wizard {
 
 	protected function wc_setup_activate_get_feature_list() {
 		$features = array();
-
-		$stripe_settings = get_option( 'woocommerce_stripe_settings', false );
-		$stripe_enabled  = is_array( $stripe_settings )
-			&& isset( $stripe_settings['create_account'] ) && 'yes' === $stripe_settings['create_account']
-			&& isset( $stripe_settings['enabled'] ) && 'yes' === $stripe_settings['enabled'];
-
-		$features['payment'] = $stripe_enabled;
 
 		return $features;
 	}
