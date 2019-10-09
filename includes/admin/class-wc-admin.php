@@ -125,13 +125,7 @@ class WC_Admin {
 		// Nonced plugin install redirects (whitelisted)
 		if ( ! empty( $_GET['wc-install-plugin-redirect'] ) ) {
 			$plugin_slug = wc_clean( $_GET['wc-install-plugin-redirect'] );
-
-			if ( current_user_can( 'install_plugins' ) && in_array( $plugin_slug, array( 'woocommerce-gateway-stripe' ) ) ) {
-				$nonce = wp_create_nonce( 'install-plugin_' . $plugin_slug );
-				$url   = self_admin_url( 'update.php?action=install-plugin&plugin=' . $plugin_slug . '&_wpnonce=' . $nonce );
-			} else {
-				$url = admin_url( 'plugin-install.php?tab=search&type=term&s=' . $plugin_slug );
-			}
+			$url = admin_url( 'plugin-install.php?tab=search&type=term&s=' . $plugin_slug );
 
 			wp_safe_redirect( $url );
 			exit;

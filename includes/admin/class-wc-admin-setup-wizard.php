@@ -1232,10 +1232,6 @@ class WC_Admin_Setup_Wizard {
 				$spotlight => $gateways[ $spotlight ],
 			);
 
-			if ( $can_stripe ) {
-				$offered_gateways += array( 'stripe' => $gateways['stripe'] );
-			}
-
 			if ( $can_eway ) {
 				$offered_gateways += array( 'eway' => $gateways['eway'] );
 			}
@@ -1248,12 +1244,6 @@ class WC_Admin_Setup_Wizard {
 		}
 
 		$offered_gateways = array();
-
-		if ( $can_stripe ) {
-			$gateways['stripe']['enabled']  = true;
-			$gateways['stripe']['featured'] = true;
-			$offered_gateways              += array( 'stripe' => $gateways['stripe'] );
-		}
 
 		if ( $can_eway ) {
 			$offered_gateways += array( 'eway' => $gateways['eway'] );

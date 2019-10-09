@@ -34,7 +34,6 @@ class WC_Tests_Setup_Functions extends WC_Unit_Test_Case {
 		update_option( 'woocommerce_sell_in_person', 'yes' );
 		$this->assertEquals( gateways( $setup_wizard ), array(
 			'square' => true,
-			'stripe' => false,
 		) );
     }
 }
