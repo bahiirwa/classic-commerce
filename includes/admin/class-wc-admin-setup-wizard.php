@@ -873,7 +873,6 @@ class WC_Admin_Setup_Wizard {
 			);
 		}
 
-		$is_wcs_labels_supported  = $this->is_wcs_shipping_labels_supported_country( $country_code );
 		$is_shipstation_supported = $this->is_shipstation_supported_country( $country_code );
 
 		?>
@@ -947,18 +946,9 @@ class WC_Admin_Setup_Wizard {
 				</ul>
 			<?php endif; ?>
 
-		<?php if ( $is_wcs_labels_supported || $is_shipstation_supported ) : ?>
+		<?php if ( $is_shipstation_supported ) : ?>
 			<ul class="wc-setup-shipping-recommended">
 			<?php
-			if ( $is_wcs_labels_supported ) :
-				$this->display_recommended_item( array(
-					'type'        => 'woocommerce_services',
-					'title'       => __( 'Print shipping labels at home', 'woocommerce' ),
-					'description' => __( 'We recommend WooCommerce Services & Jetpack. These plugins will save you time at the Post Office by enabling you to print your shipping labels at home.', 'woocommerce' ),
-					'img_url'     => WC()->plugin_url() . '/assets/images/obw-woocommerce-services-icon.png',
-					'img_alt'     => __( 'WooCommerce Services icon', 'woocommerce' ),
-					'plugins'     => $this->get_wcs_requisite_plugins(),
-				) );
 			elseif ( $is_shipstation_supported ) :
 				$this->display_recommended_item( array(
 					'type'        => 'shipstation',
@@ -1036,14 +1026,7 @@ class WC_Admin_Setup_Wizard {
 		update_option( 'woocommerce_weight_unit', $weight_unit );
 		update_option( 'woocommerce_dimension_unit', $dimension_unit );
 
-		$setup_wcs_labels  = isset( $_POST['setup_woocommerce_services'] ) && 'yes' === $_POST['setup_woocommerce_services'];
 		$setup_shipstation = isset( $_POST['setup_shipstation'] ) && 'yes' === $_POST['setup_shipstation'];
-
-		update_option( 'woocommerce_setup_shipping_labels', $setup_wcs_labels );
-
-		if ( $setup_wcs_labels ) {
-			$this->install_woocommerce_services();
-		}
 
 		if ( $setup_shipstation ) {
 			$this->install_plugin(
@@ -1258,18 +1241,6 @@ class WC_Admin_Setup_Wizard {
 			'AU', // Australia.
 			'CA', // Canada.
 			'GB', // United Kingdom.
-		);
-		return in_array( $country_code, $supported_countries, true );
-	}
-
-	/**
-	 * Is WooCommerce Services shipping label country supported
-	 *
-	 * @param string $country_code Country code.
-	 */
-	protected function is_wcs_shipping_labels_supported_country( $country_code ) {
-		$supported_countries = array(
-			'US', // United States.
 		);
 		return in_array( $country_code, $supported_countries, true );
 	}
@@ -1947,27 +1918,18 @@ class WC_Admin_Setup_Wizard {
 
 		$features['payment'] = $stripe_enabled || $ppec_enabled;
 		$features['taxes']   = (bool) get_option( 'woocommerce_setup_automated_taxes', false );
-		$features['labels']  = (bool) get_option( 'woocommerce_setup_shipping_labels', false );
 
 		return $features;
 	}
 
 	protected function wc_setup_activate_get_feature_list_str() {
 		$features = $this->wc_setup_activate_get_feature_list();
-		if ( $features['payment'] && $features['taxes'] && $features['labels'] ) {
-			return __( 'payment setup, automated taxes and discounted shipping labels', 'woocommerce' );
-		} else if ( $features['payment'] && $features['taxes'] ) {
+		if ( $features['payment'] && $features['taxes'] ) {
 			return __( 'payment setup and automated taxes', 'woocommerce' );
-		} else if ( $features['payment'] && $features['labels'] ) {
-			return __( 'payment setup and discounted shipping labels', 'woocommerce' );
 		} else if ( $features['payment'] ) {
 			return __( 'payment setup', 'woocommerce' );
-		} else if ( $features['taxes'] && $features['labels'] ) {
-			return __( 'automated taxes and discounted shipping labels', 'woocommerce' );
 		} else if ( $features['taxes'] ) {
 			return __( 'automated taxes', 'woocommerce' );
-		} else if ( $features['labels'] ) {
-			return __( 'discounted shipping labels', 'woocommerce' );
 		}
 		return false;
 	}
