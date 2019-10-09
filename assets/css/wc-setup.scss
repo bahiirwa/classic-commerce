@@ -1200,17 +1200,17 @@ p.next-steps-help-text {
 		width: 1.5em;
 	}
 
-	.stripe_create_account, .ppec_paypal_reroute_requests {
+	.stripe_create_account {
 		order: 2;
 		margin-left: 0.3em;
 	}
 }
 
-.wc-wizard-service-setting-stripe_email, .wc-wizard-service-setting-ppec_paypal_email {
+.wc-wizard-service-setting-stripe_email {
 	margin-top: 0.75em;
 	margin-left: 1.5em;
 
-	label.stripe_email, label.ppec_paypal_email {
+	label.stripe_email {
 		position: absolute;
 		margin: -1px;
 		padding: 0;
