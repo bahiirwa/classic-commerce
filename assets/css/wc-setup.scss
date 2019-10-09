@@ -606,33 +606,7 @@ body {
 			max-width: 75px;
 		}
 	}
-
-	&.klarna-logo .wc-wizard-service-name {
-		background: #000000;
-
-		img {
-			max-width: 87px;
-			padding: 12px 0;
-		}
-	}
-
-	&.square-logo .wc-wizard-service-name {
-		background: #000000;
-
-		img {
-			max-width: 95px;
-			padding: 12px 0;
-		}
-	}
-
-	&.eway-logo .wc-wizard-service-name img {
-		max-width: 87px;
-	}
-
-	&.payfast-logo .wc-wizard-service-name img {
-		max-width: 140px;
-	}
-
+	
 	.wc-wizard-service-description {
 		flex-grow: 1;
 		padding: 20px;

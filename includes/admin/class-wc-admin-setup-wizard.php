@@ -1042,64 +1042,6 @@ class WC_Admin_Setup_Wizard {
 	}
 
 	/**
-	 * Is Klarna Checkout country supported.
-	 *
-	 * @param string $country_code Country code.
-	 */
-	protected function is_klarna_checkout_supported_country( $country_code ) {
-		$supported_countries = array(
-			'SE', // Sweden.
-			'FI', // Finland.
-			'NO', // Norway.
-			'NL', // Netherlands.
-		);
-		return in_array( $country_code, $supported_countries, true );
-	}
-
-	/**
-	 * Is Klarna Payments country supported.
-	 *
-	 * @param string $country_code Country code.
-	 */
-	protected function is_klarna_payments_supported_country( $country_code ) {
-		$supported_countries = array(
-			'DK', // Denmark.
-			'DE', // Germany.
-			'AT', // Austria.
-		);
-		return in_array( $country_code, $supported_countries, true );
-	}
-
-	/**
-	 * Is Square country supported
-	 *
-	 * @param string $country_code Country code.
-	 */
-	protected function is_square_supported_country( $country_code ) {
-		$square_supported_countries = array(
-			'US',
-			'CA',
-			'JP',
-			'GB',
-			'AU',
-		);
-		return in_array( $country_code, $square_supported_countries, true );
-	}
-
-	/**
-	 * Is eWAY Payments country supported
-	 *
-	 * @param string $country_code Country code.
-	 */
-	protected function is_eway_payments_supported_country( $country_code ) {
-		$supported_countries = array(
-			'AU', // Australia.
-			'NZ', // New Zealand.
-		);
-		return in_array( $country_code, $supported_countries, true );
-	}
-
-	/**
 	 * Helper method to retrieve the current user's email address.
 	 *
 	 * @return string Email address
@@ -1124,21 +1066,6 @@ class WC_Admin_Setup_Wizard {
 			__( 'Safe and secure payments using credit cards or your customer\'s PayPal account. <a href="%s" target="_blank">Learn more</a>.', 'woocommerce' ),
 			'https://woocommerce.com/products/woocommerce-gateway-paypal-checkout/'
 		) . '</p>';
-		$klarna_checkout_description = '<p>' . sprintf(
-			/* translators: %s: URL */
-			__( 'Full checkout experience with pay now, pay later and slice it. No credit card numbers, no passwords, no worries. <a href="%s" target="_blank">Learn more about Klarna</a>.', 'woocommerce' ),
-			'https://woocommerce.com/products/klarna-checkout/'
-		) . '</p>';
-		$klarna_payments_description = '<p>' . sprintf(
-			/* translators: %s: URL */
-			__( 'Choose the payment that you want, pay now, pay later or slice it. No credit card numbers, no passwords, no worries. <a href="%s" target="_blank">Learn more about Klarna</a>.', 'woocommerce' ),
-			'https://woocommerce.com/products/klarna-payments/ '
-		) . '</p>';
-		$square_description = '<p>' . sprintf(
-			/* translators: %s: URL */
-			__( 'Securely accept credit and debit cards with one low rate, no surprise fees (custom rates available). Sell online and in store and track sales and inventory in one place. <a href="%s" target="_blank">Learn more about Square</a>.', 'woocommerce' ),
-			'https://woocommerce.com/products/square/'
-		) . '</p>';
 
 		return array(
 			'paypal'          => array(
@@ -1155,47 +1082,6 @@ class WC_Admin_Setup_Wizard {
 					),
 				),
 			),
-			'klarna_checkout' => array(
-				'name'        => __( 'Klarna Checkout for WooCommerce', 'woocommerce' ),
-				'description' => $klarna_checkout_description,
-				'image'       => WC()->plugin_url() . '/assets/images/klarna-white.png',
-				'enabled'     => true,
-				'class'       => 'klarna-logo',
-				'repo-slug'   => 'klarna-checkout-for-woocommerce',
-			),
-			'klarna_payments' => array(
-				'name'        => __( 'Klarna Payments for WooCommerce', 'woocommerce' ),
-				'description' => $klarna_payments_description,
-				'image'       => WC()->plugin_url() . '/assets/images/klarna-white.png',
-				'enabled'     => true,
-				'class'       => 'klarna-logo',
-				'repo-slug'   => 'klarna-payments-for-woocommerce',
-			),
-			'square'          => array(
-				'name'        => __( 'WooCommerce Square', 'woocommerce' ),
-				'description' => $square_description,
-				'image'       => WC()->plugin_url() . '/assets/images/square-white.png',
-				'class'       => 'square-logo',
-				'enabled'     => true,
-				'repo-slug'   => 'woocommerce-square',
-			),
-			'eway'            => array(
-				'name'        => __( 'WooCommerce eWAY Gateway', 'woocommerce' ),
-				'description' => __( 'The eWAY extension for WooCommerce allows you to take credit card payments directly on your store without redirecting your customers to a third party site to make payment.', 'woocommerce' ),
-				'image'       => WC()->plugin_url() . '/assets/images/eway-logo.jpg',
-				'enabled'     => false,
-				'class'       => 'eway-logo',
-				'repo-slug'   => 'woocommerce-gateway-eway',
-			),
-			'payfast'         => array(
-				'name'        => __( 'WooCommerce PayFast Gateway', 'woocommerce' ),
-				'description' => __( 'The PayFast extension for WooCommerce enables you to accept payments by Credit Card and EFT via one of South Africa’s most popular payment gateways. No setup fees or monthly subscription costs.', 'woocommerce' ),
-				'image'       => WC()->plugin_url() . '/assets/images/payfast.png',
-				'class'       => 'payfast-logo',
-				'enabled'     => false,
-				'repo-slug'   => 'woocommerce-payfast-gateway',
-				'file'        => 'gateway-payfast.php',
-			),
 		);
 	}
 
@@ -1208,50 +1094,13 @@ class WC_Admin_Setup_Wizard {
 		$gateways = $this->get_wizard_available_in_cart_payment_gateways();
 		$country  = WC()->countries->get_base_country();
 		$currency = get_woocommerce_currency();
-
-		$can_eway    = $this->is_eway_payments_supported_country( $country );
-		$can_payfast = ( 'ZA' === $country ); // South Africa.
 		$can_paypal  = $this->is_paypal_supported_currency( $currency );
 
 		if ( ! current_user_can( 'install_plugins' ) ) {
 			return $can_paypal ? array( 'paypal' => $gateways['paypal'] ) : array();
 		}
 
-		$spotlight = '';
-
-		if ( $this->is_klarna_checkout_supported_country( $country ) ) {
-			$spotlight = 'klarna_checkout';
-		} elseif ( $this->is_klarna_payments_supported_country( $country ) ) {
-			$spotlight = 'klarna_payments';
-		} elseif ( $this->is_square_supported_country( $country ) && get_option( 'woocommerce_sell_in_person' ) ) {
-			$spotlight = 'square';
-		}
-
-		if ( $spotlight ) {
-			$offered_gateways = array(
-				$spotlight => $gateways[ $spotlight ],
-			);
-
-			if ( $can_eway ) {
-				$offered_gateways += array( 'eway' => $gateways['eway'] );
-			}
-
-			if ( $can_payfast ) {
-				$offered_gateways += array( 'payfast' => $gateways['payfast'] );
-			}
-
-			return $offered_gateways;
-		}
-
 		$offered_gateways = array();
-
-		if ( $can_eway ) {
-			$offered_gateways += array( 'eway' => $gateways['eway'] );
-		}
-
-		if ( $can_payfast ) {
-			$offered_gateways += array( 'payfast' => $gateways['payfast'] );
-		}
 
 		return $offered_gateways;
 	}
