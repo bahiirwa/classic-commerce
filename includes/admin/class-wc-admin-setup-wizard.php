@@ -558,7 +558,6 @@ class WC_Admin_Setup_Wizard {
 	 * Function called after the HTTP request is finished, so it's executed without the client having to wait for it.
 	 *
 	 * @see WC_Admin_Setup_Wizard::install_plugin
-	 * @see WC_Admin_Setup_Wizard::install_theme
 	 */
 	public function run_deferred_actions() {
 		$this->close_http_connection();
@@ -609,25 +608,6 @@ class WC_Admin_Setup_Wizard {
 		update_option( 'woocommerce_setup_background_installing_' . $plugin_id, true );
 	}
 
-
-	/**
-	 * Helper method to queue the background install of a theme.
-	 *
-	 * @param string $theme_id  Theme id used for background install.
-	 */
-	protected function install_theme( $theme_id ) {
-		if ( empty( $this->deferred_actions ) ) {
-			add_action( 'shutdown', array( $this, 'run_deferred_actions' ) );
-		}
-		array_push(
-			$this->deferred_actions,
-			array(
-				'func' => array( 'WC_Install', 'theme_background_installer' ),
-				'args' => array( $theme_id ),
-			)
-		);
-	}
-
 	/**
 	 * Retrieve info for missing WooCommerce Services and/or Jetpack plugin.
 	 *
@@ -635,12 +615,6 @@ class WC_Admin_Setup_Wizard {
 	 */
 	protected function get_wcs_requisite_plugins() {
 		$plugins = array();
-		if ( ! is_plugin_active( 'woocommerce-services/woocommerce-services.php' ) && ! get_option( 'woocommerce_setup_background_installing_woocommerce-services' ) ) {
-			$plugins[] = array(
-				'name' => __( 'WooCommerce Services', 'woocommerce' ),
-				'slug' => 'woocommerce-services',
-			);
-		}
 		return $plugins;
 	}
 
@@ -1425,12 +1399,8 @@ class WC_Admin_Setup_Wizard {
 	 */
 	public function wc_setup_recommended_save() {
 		check_admin_referer( 'wc-setup' );
-		$setup_storefront       = isset( $_POST['setup_storefront_theme'] ) && 'yes' === $_POST['setup_storefront_theme'];
 		$setup_mailchimp        = isset( $_POST['setup_mailchimp'] ) && 'yes' === $_POST['setup_mailchimp'];
 
-		if ( $setup_storefront ) {
-			$this->install_theme( 'storefront' );
-		}
 
 		if ( $setup_mailchimp ) {
 			// Prevent MailChimp from redirecting to its settings page during the OBW flow.
