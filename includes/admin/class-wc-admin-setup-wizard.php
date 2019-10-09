@@ -304,13 +304,6 @@ class WC_Admin_Setup_Wizard {
 	 */
 	public function setup_wizard_steps() {
 		$output_steps      = $this->steps;
-		$selected_features = array_filter( $this->wc_setup_activate_get_feature_list() );
-
-		// Hide the activate step if Jetpack is already active, unless WooCommerce Services
-		// features are selected, or unless the Activate step was already taken.
-		if ( empty( $selected_features ) && 'yes' !== get_transient( 'wc_setup_activated' ) ) {
-			unset( $output_steps['activate'] );
-		}
 
 		?>
 		<ol class="wc-setup-steps">
@@ -1491,43 +1484,6 @@ class WC_Admin_Setup_Wizard {
 
 		wp_redirect( esc_url_raw( $this->get_next_step_link() ) );
 		exit;
-	}
-
-	protected function wc_setup_activate_get_feature_list() {
-		$features = array();
-
-		return $features;
-	}
-
-	protected function wc_setup_activate_get_feature_list_str() {
-		$features = $this->wc_setup_activate_get_feature_list();
-		if ( $features['payment'] && $features['taxes'] ) {
-			return __( 'payment setup and automated taxes', 'woocommerce' );
-		} else if ( $features['payment'] ) {
-			return __( 'payment setup', 'woocommerce' );
-		} else if ( $features['taxes'] ) {
-			return __( 'automated taxes', 'woocommerce' );
-		}
-		return false;
-	}
-
-	/**
-	 * Activate step.
-	 */
-	public function wc_setup_activate() {
-
-		$feature_list = $this->wc_setup_activate_get_feature_list_str();
-		if ( $feature_list ) {
-			$title = __( 'Connect your store to activate WooCommerce Services', 'woocommerce' );
-			$button_text = __( 'Continue with WooCommerce Services', 'woocommerce' );
-		} else {
-			wp_redirect( esc_url_raw( $this->get_next_step_link() ) );
-			exit;
-		}
-		?>
-		<h1><?php echo esc_html( $title ); ?></h1>
-		<p><?php echo esc_html( $description ); ?></p>
-	<?php
 	}
 
 	protected function get_activate_error_message( $code = '' ) {
