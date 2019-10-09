@@ -104,25 +104,6 @@ class WC_Admin_Setup_Wizard {
 	}
 
 	/**
-	 * The "automated tax" extra should only be shown if the current user can
-	 * install plugins and the store is in a supported country.
-	 */
-	protected function should_show_automated_tax() {
-		if ( ! current_user_can( 'install_plugins' ) ) {
-			return false;
-		}
-
-		$country_code = WC()->countries->get_base_country();
-		// https://developers.taxjar.com/api/reference/#countries .
-		$tax_supported_countries = array_merge(
-			array( 'US', 'CA', 'AU' ),
-			WC()->countries->get_european_union_countries()
-		);
-
-		return in_array( $country_code, $tax_supported_countries, true );
-	}
-
-	/**
 	 * Should we show the MailChimp install option?
 	 * True only if the user can install plugins.
 	 *
@@ -140,7 +121,6 @@ class WC_Admin_Setup_Wizard {
 	 */
 	protected function should_show_recommended_step() {
 		return $this->should_show_theme()
-			|| $this->should_show_automated_tax()
 			|| $this->should_show_mailchimp();
 	}
 
@@ -1732,10 +1712,9 @@ class WC_Admin_Setup_Wizard {
 			// and the default is the most common.
 			if (
 					$this->should_show_theme()
-					&& $this->should_show_automated_tax()
 					&& $this->should_show_mailchimp()
 					) :
-				esc_html_e( 'Select from the list below to enable automated taxes and MailChimp’s best-in-class email services — and design your store with our official, free WooCommerce theme.', 'woocommerce' );
+				esc_html_e( 'Select from the list below to enable MailChimp’s best-in-class email services — and design your store with our official, free WooCommerce theme.', 'woocommerce' );
 			else :
 				esc_html_e( 'Enhance your store with these recommended features.', 'woocommerce' );
 			endif;
@@ -1755,17 +1734,6 @@ class WC_Admin_Setup_Wizard {
 						),
 						'img_url'     => WC()->plugin_url() . '/assets/images/obw-storefront-icon.svg',
 						'img_alt'     => __( 'Storefront icon', 'woocommerce' ),
-					) );
-				endif;
-
-				if ( $this->should_show_automated_tax() ) :
-					$this->display_recommended_item( array(
-						'type'        => 'automated_taxes',
-						'title'       => __( 'Automated Taxes', 'woocommerce' ),
-						'description' => __( 'Save time and errors with automated tax calculation and collection at checkout. Powered by WooCommerce Services and Jetpack.', 'woocommerce' ),
-						'img_url'     => WC()->plugin_url() . '/assets/images/obw-taxes-icon.svg',
-						'img_alt'     => __( 'automated taxes icon', 'woocommerce' ),
-						'plugins'     => $this->get_wcs_requisite_plugins(),
 					) );
 				endif;
 
@@ -1795,20 +1763,11 @@ class WC_Admin_Setup_Wizard {
 	 */
 	public function wc_setup_recommended_save() {
 		check_admin_referer( 'wc-setup' );
-
 		$setup_storefront       = isset( $_POST['setup_storefront_theme'] ) && 'yes' === $_POST['setup_storefront_theme'];
-		$setup_automated_tax    = isset( $_POST['setup_automated_taxes'] ) && 'yes' === $_POST['setup_automated_taxes'];
 		$setup_mailchimp        = isset( $_POST['setup_mailchimp'] ) && 'yes' === $_POST['setup_mailchimp'];
-
-		update_option( 'woocommerce_calc_taxes', $setup_automated_tax ? 'yes' : 'no' );
-		update_option( 'woocommerce_setup_automated_taxes', $setup_automated_tax );
 
 		if ( $setup_storefront ) {
 			$this->install_theme( 'storefront' );
-		}
-
-		if ( $setup_automated_tax ) {
-			$this->install_woocommerce_services();
 		}
 
 		if ( $setup_mailchimp ) {
@@ -1842,7 +1801,6 @@ class WC_Admin_Setup_Wizard {
 			&& isset( $ppec_settings['enabled'] ) && 'yes' === $ppec_settings['enabled'];
 
 		$features['payment'] = $stripe_enabled || $ppec_enabled;
-		$features['taxes']   = (bool) get_option( 'woocommerce_setup_automated_taxes', false );
 
 		return $features;
 	}
